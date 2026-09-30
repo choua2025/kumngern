@@ -1,5 +1,4 @@
 import { rateLimit } from 'express-rate-limit';
-import { config } from '../config/index.js';
 import { errors } from '../lib/errors.js';
 
 interface RateLimiterOptions {
@@ -28,8 +27,3 @@ export function createRateLimiter({ windowMs, limit, message }: RateLimiterOptio
     },
   });
 }
-
-export const globalRateLimiter = createRateLimiter({
-  windowMs: 60_000,
-  limit: config.RATE_LIMIT_PER_MINUTE,
-});

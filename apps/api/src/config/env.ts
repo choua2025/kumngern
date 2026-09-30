@@ -29,6 +29,19 @@ const envSchema = z.object({
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
 
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
+  LOGIN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(5),
+
+  // --- Auth ---
+  /** HMAC key for access tokens. Generate with: node -e "console.log(crypto.randomBytes(48).toString('base64url'))" */
+  JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters'),
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
+  /** bcrypt work factor. 12 in production (~250 ms/hash); tests use 4 to stay fast. */
+  BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
 
   /** Grace period for in-flight requests on SIGTERM before the process is killed. */
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
