@@ -1,0 +1,49 @@
+name: 🐛 Bug report
+description: แจ้งปัญหาที่ระบบทำงานไม่ถูกต้อง
+title: 'bug: '
+labels: ['bug', 'triage']
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: เกิดอะไรขึ้น
+      description: อธิบายสิ่งที่เกิดขึ้น
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: สิ่งที่ควรเป็น
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: ขั้นตอนทำให้เกิดซ้ำ
+      placeholder: |
+        1. ไปที่ ...
+        2. กด ...
+        3. เห็น ...
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - local
+        - staging
+        - production
+    validations:
+      required: true
+  - type: input
+    id: request-id
+    attributes:
+      label: requestId (ถ้ามี)
+      description: จาก error response `error.requestId` ช่วยให้หา log ได้เร็ว
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log / screenshot
+      description: ห้ามแปะ password, token หรือข้อมูลส่วนตัว
+      render: shell

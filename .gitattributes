@@ -1,0 +1,13 @@
+# Normalize line endings to LF in the repo, regardless of the developer's OS.
+* text=auto eol=lf
+
+# Shell scripts run inside Linux containers/servers must never get CRLF.
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.ico binary

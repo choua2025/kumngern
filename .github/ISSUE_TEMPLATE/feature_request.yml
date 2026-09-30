@@ -1,0 +1,31 @@
+name: ✨ Feature request
+description: เสนอฟีเจอร์หรือการปรับปรุง
+title: 'feat: '
+labels: ['enhancement', 'triage']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: ปัญหาที่อยากแก้
+      description: ผู้ใช้เจอปัญหาอะไร (อธิบายปัญหา ไม่ใช่วิธีแก้)
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: วิธีที่เสนอ
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: ทางเลือกอื่นที่พิจารณา
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: เงื่อนไขที่ตรวจได้ว่าทำเสร็จแล้ว
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
