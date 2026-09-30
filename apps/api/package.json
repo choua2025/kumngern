@@ -18,7 +18,8 @@
     "db:reset": "prisma migrate reset --force",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "reconcile": "tsx --conditions=development scripts/reconcile-reports.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "6.0.0",

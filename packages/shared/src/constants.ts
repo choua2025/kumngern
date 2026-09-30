@@ -44,3 +44,6 @@ export const ERROR_CODES = [
   'INTERNAL_ERROR',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
+
+/** Budget status thresholds (docs/api.md §9): ok < alert% ≤ warning ≤ 100% < over. */
+export const BUDGET_DEFAULT_ALERT_PERCENT = 80;
