@@ -1,0 +1,18 @@
+# Build context = repo root (the Dockerfiles need packages/shared too).
+# Keep it small and never leak secrets or host-built binaries into an image.
+**/node_modules
+**/dist
+**/coverage
+**/src/generated
+.git
+.github
+.vscode
+.idea
+docs
+deploy
+*.md
+.env
+.env.*
+!.env.example
+**/*.log
+**/*.tsbuildinfo

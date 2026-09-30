@@ -39,6 +39,22 @@ npm run dev:web             # terminal 2 — http://localhost:5173 (proxies /api
 
 Login with `demo1@example.com` / `Password123!`. Press **N** anywhere to add a transaction.
 
+## Run everything in Docker
+
+```bash
+cp .env.example .env        # set JWT_ACCESS_SECRET; change API_PORT/WEB_PORT/POSTGRES_PORT if taken
+docker compose up --build   # db + api (hot reload) + web → http://localhost:5173
+docker compose exec api npm run db:seed    # optional demo data
+```
+
+Images for production (build context = repo root):
+
+| Image                     | Dockerfile target                 | Purpose                                                  |
+| ------------------------- | --------------------------------- | -------------------------------------------------------- |
+| `income-expenses-api`     | `apps/api/Dockerfile` → `runtime` | API, non-root, production deps only (~234 MB)            |
+| `income-expenses-migrate` | `apps/api/Dockerfile` → `migrate` | `prisma migrate deploy` + reference data (and demo seed) |
+| `income-expenses-web`     | `apps/web/Dockerfile` → `runtime` | nginx: static files, SPA fallback, `/api` proxy (~68 MB) |
+
 ## Scripts (root)
 
 | Script                            | ทำอะไร                            |
