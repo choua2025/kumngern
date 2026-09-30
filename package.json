@@ -19,7 +19,17 @@
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @income-expenses/api",
+    "db:deploy": "npm run db:deploy -w @income-expenses/api",
+    "db:reset": "npm run db:reset -w @income-expenses/api",
+    "db:seed": "npm run db:seed -w @income-expenses/api",
+    "db:studio": "npm run db:studio -w @income-expenses/api",
+    "db:psql": "docker compose exec db psql",
+    "db:check": "docker compose exec -T db psql < apps/api/prisma/sql/check-view.sql",
+    "db:summary": "docker compose exec -T db psql < apps/api/prisma/sql/seed-summary.sql"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
