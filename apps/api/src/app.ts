@@ -8,9 +8,12 @@ import { httpLogger } from './lib/http-logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { createRateLimiter } from './middlewares/rate-limit.js';
 import { createAuthRouter } from './modules/auth/auth.router.js';
+import { createCategoriesRouter } from './modules/categories/categories.router.js';
 import { createCurrenciesRouter } from './modules/currencies/currencies.router.js';
 import { healthRouter } from './modules/health/health.router.js';
+import { createTransactionsRouter } from './modules/transactions/transactions.router.js';
 import { createUsersRouter } from './modules/users/users.router.js';
+import { createWalletsRouter } from './modules/wallets/wallets.router.js';
 
 /**
  * Builds the Express app without listening on a port, so tests can drive it
@@ -44,6 +47,9 @@ export function createApp(): Express {
   api.use('/auth', createAuthRouter());
   api.use('/users', createUsersRouter());
   api.use('/currencies', createCurrenciesRouter());
+  api.use('/wallets', createWalletsRouter());
+  api.use('/categories', createCategoriesRouter());
+  api.use('/transactions', createTransactionsRouter());
 
   app.use(API_PREFIX, api);
 

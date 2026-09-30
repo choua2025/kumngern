@@ -22,8 +22,11 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
   }
 };
 
-/** For handlers behind `requireAuth`. Throws instead of returning undefined. */
-export function currentUserId(req: Request): bigint {
+/**
+ * For handlers behind `requireAuth`. Throws instead of returning undefined.
+ * Takes only `user` so it accepts any validated request type (params may be bigint).
+ */
+export function currentUserId(req: Pick<Request, 'user'>): bigint {
   if (!req.user) {
     throw errors.unauthorized();
   }
