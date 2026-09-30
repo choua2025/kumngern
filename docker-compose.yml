@@ -1,5 +1,15 @@
-# Development stack. Phase 2: database only — api and web services are added in Phase 9.
+# Development stack: `docker compose up` → http://localhost:5173
+#   db  : PostgreSQL 16
+#   api : Express with hot reload (tsx watch); applies migrations on start
+#   web : Vite dev server; proxies /api to the api service
+# Source folders are bind-mounted; node_modules live inside the images (host binaries such
+# as esbuild/bcrypt built for Windows/macOS would not run in Linux containers).
 name: income-expenses
+
+# File events from a Windows/macOS host often do not reach Linux containers → poll.
+x-dev-watch: &dev-watch
+  CHOKIDAR_USEPOLLING: 'true'
+  VITE_USE_POLLING: 'true'
 
 services:
   db:
@@ -26,5 +36,55 @@ services:
       timeout: 3s
       retries: 10
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *dev-watch
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-income_expenses}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./apps/api/prisma:/app/apps/api/prisma
+      - ./packages/shared/src:/app/packages/shared/src
+      - uploads:/app/uploads
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/api/v1/health > /dev/null || exit 1']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      <<: *dev-watch
+      VITE_API_PROXY_TARGET: http://api:3000
+    ports:
+      - '${WEB_PORT:-5173}:5173'
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/index.html:/app/apps/web/index.html
+      - ./apps/web/public:/app/apps/web/public
+      - ./packages/shared/src:/app/packages/shared/src
+
 volumes:
   pgdata:
+  uploads:

@@ -19,7 +19,9 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "test:coverage": "vitest run --coverage",
-    "reconcile": "tsx --conditions=development scripts/reconcile-reports.ts"
+    "reconcile": "tsx --conditions=development scripts/reconcile-reports.ts",
+    "db:seed-reference": "tsx prisma/seed-reference.ts",
+    "db:release": "prisma migrate deploy && tsx prisma/seed-reference.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "6.0.0",

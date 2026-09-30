@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // In Docker on Windows/macOS, file events from bind mounts do not reach the container.
+      watch:
+        process.env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 300 } : undefined,
       // Same-origin in development too: the browser only talks to Vite, which forwards
       // /api to Express. No CORS, and the refresh cookie (Path=/api/v1/auth) just works.
       proxy: {
