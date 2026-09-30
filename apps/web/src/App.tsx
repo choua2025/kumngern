@@ -5,12 +5,26 @@ import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { RedirectIfAuthenticated, RequireAuth } from './features/auth/RequireAuth';
 import { AppLayout } from './layouts/AppLayout';
-import { ComingSoonPage } from './pages/ComingSoonPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Code-split per page: the login screen does not download the chart library.
 const DashboardPage = lazy(() =>
   import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+);
+const WalletsPage = lazy(() =>
+  import('./features/wallets/WalletsPage').then((m) => ({ default: m.WalletsPage })),
+);
+const CategoriesPage = lazy(() =>
+  import('./features/categories/CategoriesPage').then((m) => ({ default: m.CategoriesPage })),
+);
+const BudgetsPage = lazy(() =>
+  import('./features/budgets/BudgetsPage').then((m) => ({ default: m.BudgetsPage })),
+);
+const ReportsPage = lazy(() =>
+  import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+);
+const SettingsPage = lazy(() =>
+  import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
 const TransactionsPage = lazy(() =>
   import('./features/transactions/TransactionsPage').then((m) => ({ default: m.TransactionsPage })),
@@ -62,11 +76,46 @@ export function App() {
             </Page>
           }
         />
-        <Route path="wallets" element={<ComingSoonPage title="กระเป๋าเงิน" />} />
-        <Route path="categories" element={<ComingSoonPage title="หมวดหมู่" />} />
-        <Route path="budgets" element={<ComingSoonPage title="งบประมาณ" />} />
-        <Route path="reports" element={<ComingSoonPage title="รายงาน" />} />
-        <Route path="settings" element={<ComingSoonPage title="ตั้งค่า" />} />
+        <Route
+          path="wallets"
+          element={
+            <Page>
+              <WalletsPage />
+            </Page>
+          }
+        />
+        <Route
+          path="categories"
+          element={
+            <Page>
+              <CategoriesPage />
+            </Page>
+          }
+        />
+        <Route
+          path="budgets"
+          element={
+            <Page>
+              <BudgetsPage />
+            </Page>
+          }
+        />
+        <Route
+          path="reports"
+          element={
+            <Page>
+              <ReportsPage />
+            </Page>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <Page>
+              <SettingsPage />
+            </Page>
+          }
+        />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

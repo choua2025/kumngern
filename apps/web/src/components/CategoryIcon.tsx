@@ -37,6 +37,9 @@ const ICONS: Record<string, LucideIcon> = {
   transfer: ArrowLeftRight,
 };
 
+/** Icons a user can pick for their own categories (transfer is internal). */
+export const CATEGORY_ICON_NAMES = Object.keys(ICONS).filter((name) => name !== 'transfer');
+
 export function CategoryIcon({
   icon,
   color,

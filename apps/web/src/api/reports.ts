@@ -1,5 +1,4 @@
 import type {
-  BudgetDto,
   ByCategoryReportDto,
   DailyReportDto,
   SummaryReportDto,
@@ -42,12 +41,5 @@ export function useDailyReport(month: string) {
   return useQuery({
     queryKey: queryKeys.reports.daily(month),
     queryFn: () => getData<DailyReportDto>('/reports/daily', { month }),
-  });
-}
-
-export function useBudgets(month: string) {
-  return useQuery({
-    queryKey: queryKeys.budgets(month),
-    queryFn: () => getData<BudgetDto[]>('/budgets', { month }),
   });
 }
