@@ -9,7 +9,7 @@ describe('evaluateBudget', () => {
   it.each([
     ['0', 'ok', 0],
     ['799.99', 'ok', 80],
-    ['800', 'warning', 80], // exactly at the alert threshold
+    ['800', 'ok', 80], // DEMO: deliberately wrong expectation to prove CI blocks the PR
     ['1000', 'warning', 100], // exactly at the limit is not "over" yet
     ['1000.01', 'over', 100],
     ['1500', 'over', 150],
