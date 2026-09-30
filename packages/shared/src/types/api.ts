@@ -1,4 +1,10 @@
-import type { CategoryType, ErrorCode, TransactionType, WalletType } from '../constants.js';
+import type {
+  BudgetStatus,
+  CategoryType,
+  ErrorCode,
+  TransactionType,
+  WalletType,
+} from '../constants.js';
 
 /** JSON contract between api and web (docs/api.md). IDs and money are strings. */
 
@@ -122,4 +128,60 @@ export interface TransactionDto {
 
 export interface TransactionDetailDto extends TransactionDto {
   attachments: AttachmentDto[];
+}
+
+export interface BudgetDto {
+  id: string;
+  /** "YYYY-MM" */
+  month: string;
+  category: CategoryRefDto;
+  limitAmount: string;
+  alertPercent: number;
+  /** Expenses of the category AND its sub-categories, default-currency wallets only. */
+  spent: string;
+  /** limitAmount − spent; negative when over budget. */
+  remaining: string;
+  /** Rounded to 1 decimal for display; `status` is computed from the exact value. */
+  usedPercent: number;
+  status: BudgetStatus;
+  currencyCode: string;
+}
+
+export interface CopyBudgetsResultDto {
+  copied: number;
+  skipped: number;
+}
+
+export interface MonthTotalsDto {
+  month: string;
+  income: string;
+  expense: string;
+  net: string;
+}
+
+export interface SummaryReportDto extends MonthTotalsDto {
+  currencyCode: string;
+  previous: MonthTotalsDto;
+  /** null when the previous month was 0 (division by zero). */
+  changePercent: { income: number | null; expense: number | null; net: number | null };
+}
+
+export interface ByCategoryReportDto {
+  currencyCode: string;
+  total: string;
+  items: {
+    category: Omit<CategoryRefDto, 'parentId'>;
+    total: string;
+    percent: number;
+  }[];
+}
+
+export interface TrendReportDto {
+  currencyCode: string;
+  items: MonthTotalsDto[];
+}
+
+export interface DailyReportDto {
+  currencyCode: string;
+  items: { date: string; expense: string }[];
 }
