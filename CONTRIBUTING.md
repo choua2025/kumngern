@@ -25,13 +25,13 @@ gitGraph
     merge main id: "back-merge"
 ```
 
-| Branch                 | มาจาก     | merge เข้า                            | Deploy     | หมายเหตุ                                             |
-| ---------------------- | --------- | ------------------------------------- | ---------- | ---------------------------------------------------- |
-| `main`                 | –         | –                                     | production | protected, merge ผ่าน PR เท่านั้น + ต้องมีคน approve |
-| `develop`              | `main`    | `main`                                | staging    | protected, merge ผ่าน PR เท่านั้น                    |
-| `feature/<short-name>` | `develop` | `develop`                             | –          | เช่น `feature/quick-add`                             |
-| `fix/<short-name>`     | `develop` | `develop`                             | –          | บั๊กที่ยังไม่ขึ้น production                         |
-| `hotfix/<short-name>`  | `main`    | `main` แล้ว back-merge เข้า `develop` | –          | บั๊กด่วนบน production                                |
+| Branch                 | มาจาก     | merge เข้า                            | Deploy     | หมายเหตุ                                                   |
+| ---------------------- | --------- | ------------------------------------- | ---------- | ---------------------------------------------------------- |
+| `main`                 | –         | –                                     | production | protected, merge ผ่าน PR เท่านั้น, deploy ต้องมีคน approve |
+| `develop`              | `main`    | `main`                                | staging    | protected, merge ผ่าน PR เท่านั้น                          |
+| `feature/<short-name>` | `develop` | `develop`                             | –          | เช่น `feature/quick-add`                                   |
+| `fix/<short-name>`     | `develop` | `develop`                             | –          | บั๊กที่ยังไม่ขึ้น production                               |
+| `hotfix/<short-name>`  | `main`    | `main` แล้ว back-merge เข้า `develop` | –          | บั๊กด่วนบน production                                      |
 
 ### Merge strategy
 
@@ -101,7 +101,7 @@ git push -u origin feature/quick-add
 - ✅ **Restrict deletions**
 - ✅ **Block force pushes**
 - ✅ **Require a pull request before merging**
-  - `main`: Required approvals = **1** (ทำ ruleset แยกสำหรับ main ถ้าต้องการให้ develop ไม่ต้อง approve)
+  - Required approvals = **0** — GitHub ไม่ให้เจ้าของ PR approve PR ของตัวเอง ถ้าตั้งเป็น 1 นักพัฒนาคนเดียวจะ merge เข้า `main` ไม่ได้เลย ด่านที่ต้องมีคนกดยืนยันก่อนขึ้น production อยู่ที่ **GitHub Environment `production`** (Phase 12) แทน
 - ✅ **Require status checks to pass**
   - ✅ Require branches to be up to date before merging
   - Add checks (ต้องมี CI รันอย่างน้อย 1 ครั้งก่อน ชื่อ check ถึงจะขึ้นให้เลือก):
