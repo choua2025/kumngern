@@ -44,6 +44,15 @@ export default defineConfig(
     },
   },
 
+  // Tests: Supertest's `res.body` is `any` by design and assertions check it anyway.
+  {
+    files: ['**/*.test.ts', '**/src/test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+    },
+  },
+
   // Plain JS config files are not part of any tsconfig, so skip type-aware rules for them.
   {
     files: ['**/*.{js,mjs,cjs}'],

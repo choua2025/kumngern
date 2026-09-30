@@ -5,6 +5,9 @@
     "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    // Resolve workspace packages to their TypeScript source during development
+    // (see "development" in packages/shared/package.json exports).
+    "customConditions": ["development"],
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
