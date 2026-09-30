@@ -176,16 +176,21 @@ OR
 
 ### 2.3 Foreign keys & ON DELETE
 
-| FK                                                                      | ON DELETE          | เหตุผล                                                             |
-| ----------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------ |
-| `*.user_id → users`                                                     | CASCADE            | ลบบัญชีผู้ใช้ = ลบข้อมูลทั้งหมด (PDPA / right to be forgotten)     |
-| `transactions.wallet_id / to_wallet_id → wallets`                       | RESTRICT (default) | ลบ wallet ที่มีรายการไม่ได้ → service ตอบ 409                      |
-| `transactions.category_id → categories`                                 | RESTRICT           | ลบหมวดที่ถูกใช้ไม่ได้ → 409                                        |
-| `categories.parent_id → categories`                                     | RESTRICT           | ลบหมวดแม่ที่มีลูกไม่ได้                                            |
-| `budgets.category_id`, `recurring_transactions.wallet_id / category_id` | RESTRICT           | เหมือนกัน                                                          |
-| `transactions.recurring_id → recurring_transactions`                    | SET NULL           | ลบแม่แบบแล้ว รายการที่เคยสร้างยังอยู่                              |
-| `transaction_tags.*`, `attachments.transaction_id`                      | CASCADE            | ข้อมูลลูกไม่มีความหมายถ้าไม่มีแม่ (แต่ไฟล์จริงใน volume ต้องลบเอง) |
-| `*.currency_code / default_currency → currencies`                       | RESTRICT           | ห้ามลบสกุลเงินที่ถูกใช้                                            |
+| FK                                                                      | ON DELETE | เหตุผล                                                             |
+| ----------------------------------------------------------------------- | --------- | ------------------------------------------------------------------ |
+| `*.user_id → users`                                                     | CASCADE   | ลบบัญชีผู้ใช้ = ลบข้อมูลทั้งหมด (PDPA / right to be forgotten)     |
+| `transactions.wallet_id / to_wallet_id → wallets`                       | NO ACTION | ลบ wallet ที่มีรายการไม่ได้ → service ตอบ 409                      |
+| `transactions.category_id → categories`                                 | NO ACTION | ลบหมวดที่ถูกใช้ไม่ได้ → 409                                        |
+| `categories.parent_id → categories`                                     | NO ACTION | ลบหมวดแม่ที่มีลูกไม่ได้                                            |
+| `budgets.category_id`, `recurring_transactions.wallet_id / category_id` | NO ACTION | เหมือนกัน                                                          |
+| `transactions.recurring_id → recurring_transactions`                    | SET NULL  | ลบแม่แบบแล้ว รายการที่เคยสร้างยังอยู่                              |
+| `transaction_tags.*`, `attachments.transaction_id`                      | CASCADE   | ข้อมูลลูกไม่มีความหมายถ้าไม่มีแม่ (แต่ไฟล์จริงใน volume ต้องลบเอง) |
+| `*.currency_code / default_currency → currencies`                       | RESTRICT  | ห้ามลบสกุลเงินที่ถูกใช้                                            |
+
+> 💡 **Interview note — `RESTRICT` กับ `NO ACTION` ต่างกันอย่างไร?**
+> ทั้งคู่ห้ามลบแถวแม่ที่ยังมีลูกอ้างอยู่ แต่ **`RESTRICT` ตรวจทันที** ส่วน **`NO ACTION` ตรวจตอนจบ statement**
+> ตอนลบ user, PostgreSQL จะ CASCADE ลบ wallets, categories และ transactions ใน statement เดียวกัน ถ้า FK `transactions.wallet_id` เป็น RESTRICT และ Postgres บังเอิญลบ wallet ก่อน transaction จะ error ทันที แต่ NO ACTION รอให้ cascade เสร็จก่อนแล้วค่อยตรวจ ซึ่งตอนนั้นไม่มีลูกเหลือแล้ว
+> ผลที่ได้คือการลบ wallet ตรงๆ ยังถูกห้ามเหมือนเดิม แต่การลบ user ทั้งคนทำงานได้เสมอ (พิสูจน์แล้วใน `prisma/sql/check-view.sql` ข้อ 4)
 
 ### 2.4 Indexes
 
@@ -197,14 +202,20 @@ CREATE INDEX idx_tx_to_wallet ON transactions (to_wallet_id);
 CREATE INDEX idx_tx_category  ON transactions (category_id);
 
 -- เพิ่มเพื่อให้ FK lookup และ query หลักเร็ว
-CREATE INDEX idx_wallets_user         ON wallets (user_id);
+CREATE INDEX idx_tx_recurring         ON transactions (recurring_id);
 CREATE INDEX idx_categories_user      ON categories (user_id);
 CREATE INDEX idx_categories_parent    ON categories (parent_id);
 CREATE INDEX idx_refresh_tokens_user  ON refresh_tokens (user_id);
-CREATE INDEX idx_tx_tags_tag          ON transaction_tags (tag_id);
+CREATE INDEX idx_budgets_category     ON budgets (category_id);
+CREATE INDEX idx_transaction_tags_tag ON transaction_tags (tag_id);
 CREATE INDEX idx_attachments_tx       ON attachments (transaction_id);
+CREATE INDEX idx_recurring_user       ON recurring_transactions (user_id);
+CREATE INDEX idx_recurring_wallet     ON recurring_transactions (wallet_id);
+CREATE INDEX idx_recurring_category   ON recurring_transactions (category_id);
 CREATE INDEX idx_recurring_due        ON recurring_transactions (next_run_date) WHERE is_active;
 ```
+
+ไม่มี index `wallets(user_id)`, `tags(user_id)`, `budgets(user_id)` แยก เพราะ UNIQUE `(user_id, ...)` ของตารางเหล่านั้นใช้แทนได้อยู่แล้ว (**leftmost prefix**: index `(a, b)` ใช้กับ query ที่กรองแค่ `a` ได้ แต่ใช้กับ query ที่กรองแค่ `b` ไม่ได้)
 
 > 💡 **Interview note — PostgreSQL ไม่สร้าง index ให้ FK อัตโนมัติ** (ต่างจาก MySQL/InnoDB)
 > ถ้าไม่มี index บน `transactions.wallet_id` การลบ wallet หนึ่งใบจะทำให้ Postgres ต้อง scan ทั้งตาราง transactions เพื่อเช็ค FK
@@ -251,7 +262,7 @@ GROUP BY w.wallet_id, w.user_id, w.name, w.currency_code, w.initial_balance;
 | 2   | `category.type` = `transaction.type`                      |                   |            ✅             |                          |
 | 3   | ข้ามสกุลต้องมี `to_amount`, สกุลเดียวกันต้องเป็น NULL     | ✅ (บางส่วน: X1)  |            ✅             |                          |
 | 4   | wallet ที่ archived สร้างรายการใหม่ไม่ได้                 |                   |            ✅             |                          |
-| 5   | ลบ wallet ที่มีรายการ → 409                               | ✅ (FK RESTRICT)  | ✅ (ตรวจก่อนเพื่อตอบ 409) |                          |
+| 5   | ลบ wallet ที่มีรายการ → 409                               | ✅ (FK NO ACTION) | ✅ (ตรวจก่อนเพื่อตอบ 409) |                          |
 | 6   | ลบหมวดที่ถูกใช้ → 409, แก้/ลบหมวดระบบ → 403               |      ✅ (FK)      |            ✅             |                          |
 | 7   | หมวดย่อยลึก 1 ระดับ, type ตรงกับแม่                       |                   |            ✅             |                          |
 | 8   | งบหมวดแม่รวมยอดหมวดย่อย                                   |                   |  ✅ (SQL ใน repository)   |                          |

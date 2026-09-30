@@ -1,0 +1,230 @@
+// Income & Expenses — database schema (see docs/erd.md)
+//
+// Things Prisma cannot express live in hand-written SQL migrations:
+//   - IDENTITY columns (0001_init is edited from BIGSERIAL)
+//   - CHECK constraints, partial-index predicates, v_wallet_balances (0002_constraints_and_views)
+//
+// Enum-like columns are VARCHAR + CHECK (per spec) instead of PostgreSQL ENUM types.
+// Their allowed values live in packages/shared/src/constants.ts.
+//
+// FKs from rows that are removed together with a user (wallets, categories, recurring)
+// use `NoAction` instead of `Restrict`: NO ACTION is checked at the end of the statement,
+// after ON DELETE CASCADE has removed every row of the user, so deleting a user works
+// no matter in which order PostgreSQL visits the cascaded tables.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Currency {
+  code     String @id @db.Char(3)
+  name     String @db.VarChar(50)
+  symbol   String @db.VarChar(5)
+  decimals Int    @default(2) @db.SmallInt
+
+  users   User[]
+  wallets Wallet[]
+
+  @@map("currencies")
+}
+
+model User {
+  id              BigInt   @id @default(autoincrement()) @map("user_id")
+  email           String   @unique(map: "uq_users_email") @db.VarChar(255)
+  passwordHash    String   @map("password_hash") @db.VarChar(255)
+  displayName     String   @map("display_name") @db.VarChar(100)
+  defaultCurrency String   @map("default_currency") @db.Char(3)
+  timezone        String   @default("Asia/Bangkok") @db.VarChar(50)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  currency              Currency               @relation(fields: [defaultCurrency], references: [code], onDelete: Restrict, map: "fk_users_currency")
+  refreshTokens         RefreshToken[]
+  wallets               Wallet[]
+  categories            Category[]
+  transactions          Transaction[]
+  budgets               Budget[]
+  tags                  Tag[]
+  recurringTransactions RecurringTransaction[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        BigInt    @id @default(autoincrement()) @map("token_id")
+  userId    BigInt    @map("user_id")
+  tokenHash String    @unique(map: "uq_refresh_tokens_hash") @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_refresh_tokens_user")
+
+  @@index([userId], map: "idx_refresh_tokens_user")
+  @@map("refresh_tokens")
+}
+
+model Wallet {
+  id             BigInt   @id @default(autoincrement()) @map("wallet_id")
+  userId         BigInt   @map("user_id")
+  name           String   @db.VarChar(100)
+  type           String   @db.VarChar(20)
+  currencyCode   String   @map("currency_code") @db.Char(3)
+  initialBalance Decimal  @default(0) @map("initial_balance") @db.Decimal(18, 2)
+  isArchived     Boolean  @default(false) @map("is_archived")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_wallets_user")
+  currency              Currency               @relation(fields: [currencyCode], references: [code], onDelete: Restrict, map: "fk_wallets_currency")
+  outgoingTransactions  Transaction[]          @relation("TransactionWallet")
+  incomingTransfers     Transaction[]          @relation("TransactionToWallet")
+  recurringTransactions RecurringTransaction[]
+
+  // The composite unique index also serves queries filtered by user_id alone (leftmost prefix).
+  @@unique([userId, name], map: "uq_wallets_user_name")
+  @@map("wallets")
+}
+
+model Category {
+  id        BigInt   @id @default(autoincrement()) @map("category_id")
+  userId    BigInt?  @map("user_id")
+  parentId  BigInt?  @map("parent_id")
+  name      String   @db.VarChar(100)
+  type      String   @db.VarChar(10)
+  icon      String?  @db.VarChar(50)
+  color     String?  @db.Char(7)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_categories_user")
+  parent                Category?              @relation("CategoryTree", fields: [parentId], references: [id], onDelete: NoAction, map: "fk_categories_parent")
+  children              Category[]             @relation("CategoryTree")
+  transactions          Transaction[]
+  budgets               Budget[]
+  recurringTransactions RecurringTransaction[]
+
+  @@index([userId], map: "idx_categories_user")
+  @@index([parentId], map: "idx_categories_parent")
+  @@map("categories")
+}
+
+model Transaction {
+  id          BigInt    @id @default(autoincrement()) @map("transaction_id")
+  userId      BigInt    @map("user_id")
+  type        String    @db.VarChar(10)
+  walletId    BigInt    @map("wallet_id")
+  toWalletId  BigInt?   @map("to_wallet_id")
+  categoryId  BigInt?   @map("category_id")
+  amount      Decimal   @db.Decimal(18, 2)
+  toAmount    Decimal?  @map("to_amount") @db.Decimal(18, 2)
+  note        String?   @db.VarChar(255)
+  occurredAt  DateTime  @map("occurred_at") @db.Timestamptz(6)
+  recurringId BigInt?   @map("recurring_id")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_tx_user")
+  wallet      Wallet                @relation("TransactionWallet", fields: [walletId], references: [id], onDelete: NoAction, map: "fk_tx_wallet")
+  toWallet    Wallet?               @relation("TransactionToWallet", fields: [toWalletId], references: [id], onDelete: NoAction, map: "fk_tx_to_wallet")
+  category    Category?             @relation(fields: [categoryId], references: [id], onDelete: NoAction, map: "fk_tx_category")
+  recurring   RecurringTransaction? @relation(fields: [recurringId], references: [id], onDelete: SetNull, map: "fk_tx_recurring")
+  tags        TransactionTag[]
+  attachments Attachment[]
+
+  // Made partial (WHERE deleted_at IS NULL) in migration 0002. Declared here with the same
+  // name and columns so `prisma migrate dev` does not try to drop it.
+  @@index([userId, occurredAt(sort: Desc)], map: "idx_tx_user_date")
+  @@index([walletId], map: "idx_tx_wallet")
+  @@index([toWalletId], map: "idx_tx_to_wallet")
+  @@index([categoryId], map: "idx_tx_category")
+  @@index([recurringId], map: "idx_tx_recurring")
+  @@map("transactions")
+}
+
+model Budget {
+  id           BigInt   @id @default(autoincrement()) @map("budget_id")
+  userId       BigInt   @map("user_id")
+  categoryId   BigInt   @map("category_id")
+  month        DateTime @db.Date
+  limitAmount  Decimal  @map("limit_amount") @db.Decimal(18, 2)
+  alertPercent Int      @default(80) @map("alert_percent") @db.SmallInt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_budgets_user")
+  category Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, map: "fk_budgets_category")
+
+  @@unique([userId, categoryId, month], map: "uq_budgets_user_category_month")
+  @@index([categoryId], map: "idx_budgets_category")
+  @@map("budgets")
+}
+
+model Tag {
+  id     BigInt @id @default(autoincrement()) @map("tag_id")
+  userId BigInt @map("user_id")
+  name   String @db.VarChar(50)
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_tags_user")
+  transactions TransactionTag[]
+
+  @@unique([userId, name], map: "uq_tags_user_name")
+  @@map("tags")
+}
+
+model TransactionTag {
+  transactionId BigInt @map("transaction_id")
+  tagId         BigInt @map("tag_id")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade, map: "fk_transaction_tags_tx")
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade, map: "fk_transaction_tags_tag")
+
+  @@id([transactionId, tagId], map: "pk_transaction_tags")
+  @@index([tagId], map: "idx_transaction_tags_tag")
+  @@map("transaction_tags")
+}
+
+model RecurringTransaction {
+  id          BigInt    @id @default(autoincrement()) @map("recurring_id")
+  userId      BigInt    @map("user_id")
+  type        String    @db.VarChar(10)
+  walletId    BigInt    @map("wallet_id")
+  categoryId  BigInt    @map("category_id")
+  amount      Decimal   @db.Decimal(18, 2)
+  note        String?   @db.VarChar(255)
+  frequency   String    @db.VarChar(10)
+  nextRunDate DateTime  @map("next_run_date") @db.Date
+  endDate     DateTime? @map("end_date") @db.Date
+  isActive    Boolean   @default(true) @map("is_active")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_recurring_user")
+  wallet       Wallet        @relation(fields: [walletId], references: [id], onDelete: NoAction, map: "fk_recurring_wallet")
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: NoAction, map: "fk_recurring_category")
+  transactions Transaction[]
+
+  @@index([userId], map: "idx_recurring_user")
+  @@index([walletId], map: "idx_recurring_wallet")
+  @@index([categoryId], map: "idx_recurring_category")
+  // Made partial (WHERE is_active) in migration 0002.
+  @@index([nextRunDate], map: "idx_recurring_due")
+  @@map("recurring_transactions")
+}
+
+model Attachment {
+  id            BigInt   @id @default(autoincrement()) @map("attachment_id")
+  transactionId BigInt   @map("transaction_id")
+  storageKey    String   @map("storage_key") @db.VarChar(500)
+  originalName  String   @map("original_name") @db.VarChar(255)
+  mimeType      String   @map("mime_type") @db.VarChar(100)
+  sizeBytes     Int      @map("size_bytes")
+  uploadedAt    DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade, map: "fk_attachments_tx")
+
+  @@index([transactionId], map: "idx_attachments_tx")
+  @@map("attachments")
+}

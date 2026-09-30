@@ -12,6 +12,7 @@ export default defineConfig(
     '**/build/**',
     '**/coverage/**',
     '**/prisma/migrations/**',
+    '**/src/generated/**',
   ]),
 
   js.configs.recommended,
