@@ -30,10 +30,30 @@ Requirements: Node.js 24 (`nvm use` / `fnm use` reads `.nvmrc`), npm 11, Docker 
 
 ```bash
 npm install
-npm run lint
-npm run format:check
-npm run typecheck
+cp .env.example .env        # then set JWT_ACCESS_SECRET (and PORT/POSTGRES_PORT if taken)
+npm run db:up && npm run db:deploy && npm run db:seed
+
+npm run dev:api             # terminal 1 — API on $PORT (default 3000)
+npm run dev:web             # terminal 2 — http://localhost:5173 (proxies /api to the API)
 ```
+
+Login with `demo1@example.com` / `Password123!`. Press **N** anywhere to add a transaction.
+
+## Run everything in Docker
+
+```bash
+cp .env.example .env        # set JWT_ACCESS_SECRET; change API_PORT/WEB_PORT/POSTGRES_PORT if taken
+docker compose up --build   # db + api (hot reload) + web → http://localhost:5173
+docker compose exec api npm run db:seed    # optional demo data
+```
+
+Images for production (build context = repo root):
+
+| Image                     | Dockerfile target                 | Purpose                                                  |
+| ------------------------- | --------------------------------- | -------------------------------------------------------- |
+| `income-expenses-api`     | `apps/api/Dockerfile` → `runtime` | API, non-root, production deps only (~234 MB)            |
+| `income-expenses-migrate` | `apps/api/Dockerfile` → `migrate` | `prisma migrate deploy` + reference data (and demo seed) |
+| `income-expenses-web`     | `apps/web/Dockerfile` → `runtime` | nginx: static files, SPA fallback, `/api` proxy (~68 MB) |
 
 ## Scripts (root)
 
@@ -44,3 +64,4 @@ npm run typecheck
 | `npm run typecheck`               | `tsc --noEmit` ทุก workspace      |
 | `npm run build`                   | build ทุก workspace               |
 | `npm test`                        | test ทุก workspace                |
+| `npm run dev:api` / `dev:web`     | dev server ของ API / เว็บ         |

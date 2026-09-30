@@ -251,6 +251,18 @@ PostgreSQL `BIGINT` ใหญ่ได้ถึง 2^63 แต่ JS number ป�
 ถ้ามีคนส่ง refresh token ที่ **ถูก revoke ไปแล้ว** มา แปลว่า token รั่ว (ผู้ใช้จริงกับผู้โจมตีถือ token ชุดเดียวกัน)
 → revoke refresh token **ทั้งหมด** ของ user นั้น และบังคับ login ใหม่ (แนวทางตาม OAuth 2.0 Security BCP)
 
+**ความหมายของ `revoked_at` (แก้ใน Phase 4 หลัง test จับบั๊กได้)**
+
+| เหตุการณ์                  | ทำอะไรกับแถวใน `refresh_tokens`               | ถ้า token นั้นถูกส่งมาอีก      |
+| -------------------------- | --------------------------------------------- | ------------------------------ |
+| rotation (`/auth/refresh`) | ตั้ง `revoked_at`                             | **reuse → revoke ทุก session** |
+| logout                     | **ลบแถว**                                     | ไม่รู้จัก → 401 ธรรมดา         |
+| เปลี่ยนรหัสผ่าน            | **ลบทุกแถวของ user** แล้วออกใหม่ให้อุปกรณ์นี้ | ไม่รู้จัก → 401 ธรรมดา         |
+
+ถ้าใช้ `revoked_at` กับทุกกรณี พอผู้ใช้เปลี่ยนรหัสผ่านแล้วอุปกรณ์อื่นลอง refresh ระบบจะเข้าใจว่าเป็นการขโมย แล้ว revoke session ใหม่ของอุปกรณ์ที่เพิ่งเปลี่ยนรหัสไปด้วย
+
+**Race condition:** `/auth/refresh` ล็อกแถวด้วย `SELECT ... FOR UPDATE` สอง request ที่ใช้ token เดียวกันพร้อมกันจึงถูกทำทีละตัว (มี test แบบ deterministic ยืนยัน) ผลข้างเคียงที่ยอมรับได้คือ ถ้าเปิดแอปสองแท็บแล้ว refresh พร้อมกัน แท็บที่สองจะถูกมองว่าเป็น reuse ฝั่งเว็บ (Phase 7) จึงต้องรวม refresh ให้เหลือครั้งเดียว
+
 ### D6. Timezone
 
 - เก็บ `occurred_at` เป็น `TIMESTAMPTZ` (UTC ภายใน) และ API ส่งออกเป็น ISO 8601 UTC (`...Z`)
@@ -385,19 +397,22 @@ wallet แต่ละใบมีสกุลเงินของตัวเ�
 
 หลักการคัด: **เก็บ** สิ่งที่ทำให้ข้อมูลถูกต้องหรือปลอดภัย และต้นทุนต่ำ · **ตัด** สิ่งที่เป็นความสะดวกซึ่งเพิ่มทีหลังได้โดยไม่ต้องแก้ schema (YAGNI)
 
-| #   | สิ่งที่เพิ่ม                                                                               | ผล                          | เหตุผล                                                                                                                  |
-| --- | ------------------------------------------------------------------------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| X1  | CHECK `chk_tx_to_amount`: `to_amount` มีได้เฉพาะ transfer และต้อง > 0                      | ✅ เก็บ                     | เงินผิด = บั๊กร้ายแรงที่สุดของแอปนี้ และ constraint แค่บรรทัดเดียว                                                      |
-| X2  | CHECK `email = lower(email)`, รูปแบบ `color`, `size_bytes > 0`, `parent_id <> category_id` | ✅ เก็บ                     | ด่านสุดท้ายของกฎที่ spec เขียนไว้แล้ว ต้นทุนเกือบศูนย์                                                                  |
-| X3  | Query `deleted=true` ใน `GET /transactions`                                                | ✅ เก็บ                     | ถ้าไม่มี endpoint `restore` ใช้งานจริงไม่ได้ เพราะผู้ใช้หารายการที่ลบไม่เจอ                                             |
-| X4  | ~~Query `currency` ใน `/reports/*`~~                                                       | ❌ ตัด                      | ผู้ใช้เกือบทุกคนใช้สกุลเดียว ถ้าอยากดูสกุลอื่นให้เปลี่ยน `defaultCurrency` ใน Settings และเพิ่มทีหลังได้โดยไม่ breaking |
-| X5  | `register` login ให้ทันที (คืน accessToken + cookie)                                       | ✅ เก็บ                     | ใช้ function ออก token เดียวกับ login ไม่ได้เพิ่มโค้ด                                                                   |
-| X6  | เปลี่ยนรหัสผ่านแล้ว revoke ทั้งหมด **แล้วออก token ใหม่ให้ device ปัจจุบัน**               | ✅ เก็บ                     | UX ดีขึ้นมากโดยเพิ่มแค่ 2 บรรทัด                                                                                        |
-| X7  | Filter `categoryId` ใน transactions รวมหมวดย่อยด้วย                                        | ✅ เก็บ                     | ให้กดจาก budget "อาหาร" แล้วเห็นรายการตรงกับตัวเลข `spent`                                                              |
-| X8  | Global rate limit 300 req/นาที/IP                                                          | ✅ เก็บ                     | 1 บรรทัด ป้องกัน abuse ได้มาก                                                                                           |
-| X9  | ~~CHECK `chk_rec_end_date`~~                                                               | ❌ ตัด                      | ชนกับ cron ตอนเลื่อน `next_run_date` รอบสุดท้าย ให้ตรวจใน Zod ตอนสร้าง/แก้แทน                                           |
-| X10 | ~~`usageCount` ใน Tag object~~                                                             | ❌ ตัด                      | ต้อง JOIN/นับทุกครั้งที่โหลด tag แต่ MVP ไม่มีหน้าจอที่ใช้                                                              |
-| X11 | Refresh token reuse detection (D5), escape `%` `_` ใน `q`, ป้องกัน CSV injection           | ✅ เก็บ                     | เป็นเรื่อง security ที่ต้องมีตั้งแต่แรก                                                                                 |
-| X12 | **Node.js 24 LTS** แทน Node 20 (spec)                                                      | ✅ ผู้ใช้อนุมัติ 2026-09-30 | Node 20 หมด support (EOL) ไปแล้วเมื่อ 2026-04-30 ส่วน Node 24 ได้ support ถึง เม.ย. 2028                                |
+| #   | สิ่งที่เพิ่ม                                                                                                                                                | ผล                          | เหตุผล                                                                                                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| X1  | CHECK `chk_tx_to_amount`: `to_amount` มีได้เฉพาะ transfer และต้อง > 0                                                                                       | ✅ เก็บ                     | เงินผิด = บั๊กร้ายแรงที่สุดของแอปนี้ และ constraint แค่บรรทัดเดียว                                                      |
+| X2  | CHECK `email = lower(email)`, รูปแบบ `color`, `size_bytes > 0`, `parent_id <> category_id`                                                                  | ✅ เก็บ                     | ด่านสุดท้ายของกฎที่ spec เขียนไว้แล้ว ต้นทุนเกือบศูนย์                                                                  |
+| X3  | Query `deleted=true` ใน `GET /transactions`                                                                                                                 | ✅ เก็บ                     | ถ้าไม่มี endpoint `restore` ใช้งานจริงไม่ได้ เพราะผู้ใช้หารายการที่ลบไม่เจอ                                             |
+| X4  | ~~Query `currency` ใน `/reports/*`~~                                                                                                                        | ❌ ตัด                      | ผู้ใช้เกือบทุกคนใช้สกุลเดียว ถ้าอยากดูสกุลอื่นให้เปลี่ยน `defaultCurrency` ใน Settings และเพิ่มทีหลังได้โดยไม่ breaking |
+| X5  | `register` login ให้ทันที (คืน accessToken + cookie)                                                                                                        | ✅ เก็บ                     | ใช้ function ออก token เดียวกับ login ไม่ได้เพิ่มโค้ด                                                                   |
+| X6  | เปลี่ยนรหัสผ่านแล้ว revoke ทั้งหมด **แล้วออก token ใหม่ให้ device ปัจจุบัน**                                                                                | ✅ เก็บ                     | UX ดีขึ้นมากโดยเพิ่มแค่ 2 บรรทัด                                                                                        |
+| X7  | Filter `categoryId` ใน transactions รวมหมวดย่อยด้วย                                                                                                         | ✅ เก็บ                     | ให้กดจาก budget "อาหาร" แล้วเห็นรายการตรงกับตัวเลข `spent`                                                              |
+| X8  | Global rate limit 300 req/นาที/IP                                                                                                                           | ✅ เก็บ                     | 1 บรรทัด ป้องกัน abuse ได้มาก                                                                                           |
+| X9  | ~~CHECK `chk_rec_end_date`~~                                                                                                                                | ❌ ตัด                      | ชนกับ cron ตอนเลื่อน `next_run_date` รอบสุดท้าย ให้ตรวจใน Zod ตอนสร้าง/แก้แทน                                           |
+| X10 | ~~`usageCount` ใน Tag object~~                                                                                                                              | ❌ ตัด                      | ต้อง JOIN/นับทุกครั้งที่โหลด tag แต่ MVP ไม่มีหน้าจอที่ใช้                                                              |
+| X11 | Refresh token reuse detection (D5), escape `%` `_` ใน `q`, ป้องกัน CSV injection                                                                            | ✅ เก็บ                     | เป็นเรื่อง security ที่ต้องมีตั้งแต่แรก                                                                                 |
+| X12 | **Node.js 24 LTS** แทน Node 20 (spec)                                                                                                                       | ✅ ผู้ใช้อนุมัติ 2026-09-30 | Node 20 หมด support (EOL) ไปแล้วเมื่อ 2026-04-30 ส่วน Node 24 ได้ support ถึง เม.ย. 2028                                |
+| X13 | แยก image **`income-expenses-migrate`** (Prisma CLI) ออกจาก image API และใช้ `docker compose run --rm migrate` แทน `run --rm api npx prisma migrate deploy` | ✅ Phase 9                  | Prisma CLI กับ dependency ของมันใหญ่ราว 280 MB ถ้าใส่ใน image API จะเกินเป้า 250 MB (วัดได้ 661 MB)                     |
+| X14 | image `migrate` รัน **`seedReferenceData()`** ต่อจาก migrate ทุกครั้ง                                                                                       | ✅ Phase 9                  | ถ้าไม่มีสกุลเงินและหมวดของระบบ production จะสมัครสมาชิกไม่ได้เลย (เจอตอนทดสอบ prod compose)                             |
+| X15 | API ตัวเดียว → redeploy มี 502 ไม่กี่วินาทีระหว่าง container ใหม่ boot                                                                                      | รับทราบ                     | zero-downtime ต้องมี ≥ 2 replica + rolling update (นอก scope MVP)                                                       |
 
 **ไม่เพิ่มอะไรจาก spec อีก** ฟีเจอร์อย่างลืมรหัสผ่านหรือ exchange rate อยู่ใน Non-goals (ข้อ 2.2) และจะทำหลัง MVP

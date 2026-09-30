@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: <html class="dark"> (set before paint in index.html). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Noto Sans Thai', 'Sarabun', ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * Chart roles (dataviz reference palette, validated for both modes).
+ * Charts reference roles, never raw hex, so dark mode swaps in one place.
+ */
+:root {
+  --chart-surface: #fcfcfb;
+  --chart-text: #52514e;
+  --chart-grid: #e7e5e0;
+  --series-1: #2a78d6; /* blue */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua */
+  --series-4: #eda100; /* yellow */
+  --series-5: #e87ba4; /* magenta */
+  --series-other: #a8a7a2; /* "อื่นๆ" — neutral, never a 6th hue */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+}
+
+.dark {
+  color-scheme: dark;
+  --chart-surface: #1a1a19;
+  --chart-text: #c3c2b7;
+  --chart-grid: #383835;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-other: #6f6e69;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* Money columns line up: every digit has the same width. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

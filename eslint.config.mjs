@@ -2,6 +2,7 @@
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -12,6 +13,7 @@ export default defineConfig(
     '**/build/**',
     '**/coverage/**',
     '**/prisma/migrations/**',
+    '**/src/generated/**',
   ]),
 
   js.configs.recommended,
@@ -40,6 +42,22 @@ export default defineConfig(
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       eqeqeq: ['error', 'always'],
       'no-console': 'error',
+    },
+  },
+
+  // Web (React, browser)
+  {
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat.recommended],
+    languageOptions: { globals: { ...globals.browser } },
+  },
+
+  // Tests: Supertest's `res.body` is `any` by design and assertions check it anyway.
+  {
+    files: ['**/*.test.ts', '**/src/test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
     },
   },
 
