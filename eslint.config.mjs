@@ -2,6 +2,7 @@
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -42,6 +43,13 @@ export default defineConfig(
       eqeqeq: ['error', 'always'],
       'no-console': 'error',
     },
+  },
+
+  // Web (React, browser)
+  {
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat.recommended],
+    languageOptions: { globals: { ...globals.browser } },
   },
 
   // Tests: Supertest's `res.body` is `any` by design and assertions check it anyway.

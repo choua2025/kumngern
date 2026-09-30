@@ -30,10 +30,14 @@ Requirements: Node.js 24 (`nvm use` / `fnm use` reads `.nvmrc`), npm 11, Docker 
 
 ```bash
 npm install
-npm run lint
-npm run format:check
-npm run typecheck
+cp .env.example .env        # then set JWT_ACCESS_SECRET (and PORT/POSTGRES_PORT if taken)
+npm run db:up && npm run db:deploy && npm run db:seed
+
+npm run dev:api             # terminal 1 — API on $PORT (default 3000)
+npm run dev:web             # terminal 2 — http://localhost:5173 (proxies /api to the API)
 ```
+
+Login with `demo1@example.com` / `Password123!`. Press **N** anywhere to add a transaction.
 
 ## Scripts (root)
 
@@ -44,3 +48,4 @@ npm run typecheck
 | `npm run typecheck`               | `tsc --noEmit` ทุก workspace      |
 | `npm run build`                   | build ทุก workspace               |
 | `npm test`                        | test ทุก workspace                |
+| `npm run dev:api` / `dev:web`     | dev server ของ API / เว็บ         |
