@@ -1,10 +1,10 @@
+import type { ReactNode } from 'react';
 import type { ByCategoryReportDto } from '@income-expenses/shared';
 import Big from 'big.js';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useByCategoryReport } from '../../api/reports';
 import { useFormatMoney } from '../../components/Money';
 import { Card, EmptyState, ErrorState, Skeleton } from '../../components/states';
-import { lastDayOfMonth } from '../../lib/date';
 
 /** Part-to-whole reads at a glance only with few slices: top 5 + "อื่นๆ" (≤ 6). */
 const MAX_SLICES = 5;
@@ -48,18 +48,27 @@ export function toSlices(report: ByCategoryReportDto): Slice[] {
   return slices;
 }
 
-export function CategoryDonut({ month }: { month: string }) {
-  const report = useByCategoryReport(`${month}-01`, lastDayOfMonth(month), 'expense');
+interface CategoryDonutProps {
+  from: string;
+  to: string;
+  type?: 'income' | 'expense';
+  title: string;
+  /** Extra controls in the card header (e.g. an income/expense toggle). */
+  action?: ReactNode;
+}
+
+export function CategoryDonut({ from, to, type = 'expense', title, action }: CategoryDonutProps) {
+  const report = useByCategoryReport(from, to, type);
   const format = useFormatMoney();
 
   return (
-    <Card title="รายจ่ายตามหมวด (เดือนนี้)">
+    <Card title={title} action={action}>
       {report.isPending ? (
         <Skeleton className="h-56" />
       ) : report.isError ? (
         <ErrorState error={report.error} onRetry={() => void report.refetch()} />
       ) : report.data.items.length === 0 ? (
-        <EmptyState title="ยังไม่มีรายจ่ายเดือนนี้" />
+        <EmptyState title={type === 'expense' ? 'ไม่มีรายจ่ายในช่วงนี้' : 'ไม่มีรายรับในช่วงนี้'} />
       ) : (
         <div className="flex flex-col items-center gap-4 sm:flex-row">
           <div className="relative size-44 shrink-0">

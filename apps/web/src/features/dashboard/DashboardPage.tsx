@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTransactions } from '../../api/transactions';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
-import { currentMonthIn, formatMonthLong } from '../../lib/date';
+import { currentMonthIn, formatMonthLong, lastDayOfMonth } from '../../lib/date';
 import { useCurrentUser } from '../auth/auth-context';
 import { TransactionItem } from '../transactions/TransactionItem';
 import { BudgetWatchlist } from './BudgetWatchlist';
@@ -56,7 +56,11 @@ export function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <WalletBalances />
         <BudgetWatchlist month={month} />
-        <CategoryDonut month={month} />
+        <CategoryDonut
+          from={`${month}-01`}
+          to={lastDayOfMonth(month)}
+          title="รายจ่ายตามหมวด (เดือนนี้)"
+        />
         <TrendChart />
       </div>
       <RecentTransactions timezone={user.timezone} />

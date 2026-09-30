@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useBudgets } from '../../api/reports';
+import { useBudgets } from '../../api/budgets';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { BudgetProgress } from '../budgets/BudgetProgress';
 

@@ -17,7 +17,7 @@ type AuthState =
   | { status: 'anonymous'; user: null }
   | { status: 'authenticated'; user: UserDto };
 
-interface AuthContextValue {
+export interface AuthContextValue {
   state: AuthState;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
@@ -26,7 +26,8 @@ interface AuthContextValue {
   setUser: (user: UserDto) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+/** Exported for tests, which provide a fixed user instead of the silent-login flow. */
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null });

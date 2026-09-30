@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { MonthTotalsDto } from '@income-expenses/shared';
 import {
   Bar,
@@ -24,8 +25,16 @@ interface Row {
   expense: number;
 }
 
-export function TrendChart() {
-  const trend = useTrendReport(6);
+export function TrendChart({
+  months = 6,
+  title = `รายรับ-รายจ่าย ${months} เดือน`,
+  action,
+}: {
+  months?: number;
+  title?: string;
+  action?: ReactNode;
+}) {
+  const trend = useTrendReport(months);
   const format = useFormatMoney();
 
   const rows: Row[] =
@@ -38,7 +47,7 @@ export function TrendChart() {
   const hasData = rows.some((row) => row.income > 0 || row.expense > 0);
 
   return (
-    <Card title="รายรับ-รายจ่าย 6 เดือน">
+    <Card title={title} action={action}>
       {trend.isPending ? (
         <Skeleton className="h-64" />
       ) : trend.isError ? (
