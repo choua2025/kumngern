@@ -160,7 +160,7 @@ Errors: `401` (ไม่มี cookie / ไม่พบ / หมดอายุ 
 
 ### `POST /auth/logout`
 
-- revoke refresh token จาก cookie (ถ้ามี) + clear cookie
+- ลบ refresh token ของ cookie นี้ออกจาก DB (ถ้ามี) + clear cookie
 - ทำงานได้แม้ access token หมดอายุ (idempotent) เพื่อให้ logout ได้เสมอ
 
 ```
@@ -201,13 +201,19 @@ Errors: `401` (ไม่มี cookie / ไม่พบ / หมดอายุ 
 ```
 
 - revoke refresh token **ทั้งหมด** แล้วออก token ใหม่ให้ device นี้ (X6)
-  Errors: `400`, `401` (currentPassword ผิด)
+- ลบ refresh token ทั้งหมดของ user (ทุกอุปกรณ์) แล้วออกชุดใหม่ให้อุปกรณ์นี้
+
+Errors: `400` (รวมถึง `currentPassword` ผิด → `details[0].path = "currentPassword"`)
+
+> ทำไม currentPassword ผิดถึงตอบ **400 ไม่ใช่ 401**: axios interceptor ฝั่งเว็บตีความ 401 ว่า "access token หมดอายุ" แล้วจะ refresh + retry ซึ่งจะพาผู้ใช้หลุดออกจากระบบทั้งที่แค่พิมพ์รหัสผิด
 
 ---
 
 ## 5. Currencies
 
-### `GET /currencies`
+### `GET /currencies` — public
+
+ไม่ต้อง login เพราะฟอร์มสมัครสมาชิกต้องแสดงรายการสกุลเงินก่อนมีบัญชี
 
 ```json
 200 {
@@ -797,7 +803,7 @@ Errors: `400`, `404` (transaction ไม่ใช่ของผู้ใช้�
 | GET                | /auth/me                      | ✅                    |
 | PATCH              | /users/me                     | ✅                    |
 | PATCH              | /users/me/password            | ✅                    |
-| GET                | /currencies                   | ✅                    |
+| GET                | /currencies                   | public                |
 | GET, POST          | /wallets                      | ✅                    |
 | GET, PATCH, DELETE | /wallets/:id                  | ✅                    |
 | GET, POST          | /categories                   | ✅                    |

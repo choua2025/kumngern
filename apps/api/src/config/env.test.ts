@@ -3,6 +3,7 @@ import { parseEnv } from './env.js';
 
 const validEnv = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+  JWT_ACCESS_SECRET: 'x'.repeat(32),
 };
 
 describe('parseEnv', () => {
@@ -37,7 +38,15 @@ describe('parseEnv', () => {
   });
 
   it('rejects a non-postgres DATABASE_URL', () => {
-    expect(() => parseEnv({ DATABASE_URL: 'mysql://localhost/db' })).toThrow(/DATABASE_URL/);
+    expect(() => parseEnv({ ...validEnv, DATABASE_URL: 'mysql://localhost/db' })).toThrow(
+      /DATABASE_URL/,
+    );
+  });
+
+  it('rejects a JWT secret that is too short to be safe', () => {
+    expect(() => parseEnv({ ...validEnv, JWT_ACCESS_SECRET: 'secret' })).toThrow(
+      /JWT_ACCESS_SECRET/,
+    );
   });
 
   it('never echoes the (possibly secret) value in the error message', () => {

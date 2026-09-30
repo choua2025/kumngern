@@ -13,6 +13,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcrypt';
 import { config as loadEnv } from 'dotenv';
 import { Prisma, PrismaClient } from '../src/generated/prisma/client.js';
+import {
+  type CategoryIds,
+  type CategoryKey,
+  SYSTEM_CATEGORIES,
+  seedReferenceData,
+} from './reference-data.js';
 
 loadEnv({ path: path.resolve(import.meta.dirname, '../../../.env'), quiet: true });
 
@@ -29,80 +35,6 @@ type Decimal = Prisma.Decimal;
 const DEMO_PASSWORD = 'Password123!';
 const BCRYPT_COST = 12;
 const PRNG_SEED = 20260930;
-
-// ---------------------------------------------------------------------------
-// Reference data
-// ---------------------------------------------------------------------------
-
-const CURRENCIES = [
-  { code: 'THB', name: 'Thai Baht', symbol: '฿', decimals: 2 },
-  { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2 },
-  { code: 'LAK', name: 'Lao Kip', symbol: '₭', decimals: 0 },
-] as const;
-
-type CategoryType = 'income' | 'expense';
-
-interface CategorySeed {
-  key: string;
-  name: string;
-  type: CategoryType;
-  icon: string;
-  color: string;
-  children?: CategorySeed[];
-}
-
-const SYSTEM_CATEGORIES: CategorySeed[] = [
-  { key: 'salary', name: 'เงินเดือน', type: 'income', icon: 'briefcase', color: '#16A34A' },
-  { key: 'freelance', name: 'ฟรีแลนซ์', type: 'income', icon: 'laptop', color: '#0D9488' },
-  { key: 'gift', name: 'ของขวัญ', type: 'income', icon: 'gift', color: '#DB2777' },
-  { key: 'incomeOther', name: 'อื่นๆ', type: 'income', icon: 'circle-plus', color: '#64748B' },
-  {
-    key: 'food',
-    name: 'อาหาร',
-    type: 'expense',
-    icon: 'utensils',
-    color: '#F97316',
-    children: [{ key: 'coffee', name: 'กาแฟ', type: 'expense', icon: 'coffee', color: '#92400E' }],
-  },
-  { key: 'travel', name: 'เดินทาง', type: 'expense', icon: 'bus', color: '#0EA5E9' },
-  { key: 'housing', name: 'ที่พัก', type: 'expense', icon: 'home', color: '#6366F1' },
-  { key: 'bills', name: 'บิล/ค่าน้ำไฟ', type: 'expense', icon: 'receipt', color: '#EAB308' },
-  { key: 'shopping', name: 'ช้อปปิ้ง', type: 'expense', icon: 'shopping-bag', color: '#EC4899' },
-  { key: 'health', name: 'สุขภาพ', type: 'expense', icon: 'heart-pulse', color: '#EF4444' },
-  {
-    key: 'entertainment',
-    name: 'บันเทิง',
-    type: 'expense',
-    icon: 'clapperboard',
-    color: '#8B5CF6',
-  },
-  { key: 'education', name: 'การศึกษา', type: 'expense', icon: 'graduation-cap', color: '#2563EB' },
-  {
-    key: 'expenseOther',
-    name: 'อื่นๆ',
-    type: 'expense',
-    icon: 'circle-ellipsis',
-    color: '#64748B',
-  },
-];
-
-type CategoryKey =
-  | 'salary'
-  | 'freelance'
-  | 'gift'
-  | 'incomeOther'
-  | 'food'
-  | 'coffee'
-  | 'travel'
-  | 'housing'
-  | 'bills'
-  | 'shopping'
-  | 'health'
-  | 'entertainment'
-  | 'education'
-  | 'expenseOther';
-
-type CategoryIds = Record<CategoryKey, bigint>;
 
 // ---------------------------------------------------------------------------
 // Demo users
@@ -292,57 +224,6 @@ function fixedAmount(user: DemoUserSeed, thb: number): Decimal {
   const minor =
     Math.round((thb * user.thbRate * 100) / user.roundingMinorUnits) * user.roundingMinorUnits;
   return new Decimal(minor).div(100);
-}
-
-// ---------------------------------------------------------------------------
-// Seeding steps
-// ---------------------------------------------------------------------------
-
-async function seedCurrencies(): Promise<void> {
-  for (const currency of CURRENCIES) {
-    await prisma.currency.upsert({
-      where: { code: currency.code },
-      create: currency,
-      update: { name: currency.name, symbol: currency.symbol, decimals: currency.decimals },
-    });
-  }
-}
-
-async function upsertSystemCategory(seed: CategorySeed, parentId: bigint | null): Promise<bigint> {
-  // System categories have user_id NULL, so there is no unique key to upsert on.
-  const existing = await prisma.category.findFirst({
-    where: { userId: null, parentId, name: seed.name, type: seed.type },
-    select: { id: true },
-  });
-  if (existing) {
-    await prisma.category.update({
-      where: { id: existing.id },
-      data: { icon: seed.icon, color: seed.color },
-    });
-    return existing.id;
-  }
-  const created = await prisma.category.create({
-    data: { name: seed.name, type: seed.type, icon: seed.icon, color: seed.color, parentId },
-    select: { id: true },
-  });
-  return created.id;
-}
-
-async function seedSystemCategories(): Promise<CategoryIds> {
-  const ids: Partial<CategoryIds> = {};
-  for (const root of SYSTEM_CATEGORIES) {
-    const rootId = await upsertSystemCategory(root, null);
-    ids[root.key as CategoryKey] = rootId;
-    for (const child of root.children ?? []) {
-      ids[child.key as CategoryKey] = await upsertSystemCategory(child, rootId);
-    }
-  }
-  for (const key of Object.keys(ids)) {
-    if (ids[key as CategoryKey] === undefined) {
-      throw new Error(`Missing category id for ${key}`);
-    }
-  }
-  return ids as CategoryIds;
 }
 
 interface PlannedTransaction {
@@ -679,8 +560,7 @@ async function seedDemoUser(
 async function main(): Promise<void> {
   // eslint-disable-next-line no-console -- CLI script output
   console.log('🌱 Seeding...');
-  await seedCurrencies();
-  const categories = await seedSystemCategories();
+  const categories = await seedReferenceData(prisma);
 
   await prisma.user.deleteMany({ where: { email: { in: DEMO_USERS.map((u) => u.email) } } });
 
