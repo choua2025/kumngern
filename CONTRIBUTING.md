@@ -88,9 +88,40 @@ git push -u origin feature/quick-add
 
 ## 4. Branch protection (ตั้งบน GitHub)
 
-Settings → Branches → Add branch ruleset สำหรับ `main` และ `develop`:
+**Settings → Rules → Rulesets → New branch ruleset**
 
-- ✅ Restrict deletions
-- ✅ Require a pull request before merging (`main`: Required approvals = 1)
-- ✅ Require status checks to pass (เพิ่ม job ของ CI หลัง Phase 10)
-- ✅ Block force pushes
+| ช่อง               | ค่า                                                    |
+| ------------------ | ------------------------------------------------------ |
+| Ruleset name       | `protect-main-develop`                                 |
+| Enforcement status | **Active**                                             |
+| Target branches    | Add target → Include by pattern → `main` และ `develop` |
+
+เปิด rule ต่อไปนี้:
+
+- ✅ **Restrict deletions**
+- ✅ **Block force pushes**
+- ✅ **Require a pull request before merging**
+  - `main`: Required approvals = **1** (ทำ ruleset แยกสำหรับ main ถ้าต้องการให้ develop ไม่ต้อง approve)
+- ✅ **Require status checks to pass**
+  - ✅ Require branches to be up to date before merging
+  - Add checks (ต้องมี CI รันอย่างน้อย 1 ครั้งก่อน ชื่อ check ถึงจะขึ้นให้เลือก):
+    - `lint-typecheck`
+    - `test-api`
+    - `test-web`
+    - `build-images (api)`
+    - `build-images (migrate)`
+    - `build-images (web)`
+
+> ถ้าไม่ได้เพิ่ม check ใน "Require status checks" CI จะแค่แสดงกากบาทสีแดง แต่ยัง **merge ได้อยู่ดี**
+> การตั้ง ruleset นี้คือสิ่งที่ทำให้ "PR ที่ test พัง merge ไม่ได้" จริงๆ
+
+## 5. CI (`.github/workflows/ci.yml`)
+
+รันทุก pull request และทุก push เข้า `develop` / `main`
+
+| Job              | ทำอะไร                                          | รันเองบนเครื่อง                                                                                            |
+| ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `lint-typecheck` | ESLint, Prettier, `tsc` ทุก workspace           | `npm run db:generate -w @income-expenses/api && npm run lint && npm run format:check && npm run typecheck` |
+| `test-api`       | PostgreSQL 16 + migrate + Vitest coverage ≥ 70% | `npm run test:coverage -w @income-expenses/api`                                                            |
+| `test-web`       | Vitest + Testing Library                        | `npm test -w @income-expenses/web`                                                                         |
+| `build-images`   | build image api / migrate / web (ไม่ push)      | `docker build -f apps/api/Dockerfile --target runtime .`                                                   |
