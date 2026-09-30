@@ -1,0 +1,31 @@
+# Which files belong to which pipeline (read by dorny/paths-filter).
+# A change in packages/shared or the root toolchain affects BOTH apps.
+
+shared: &shared
+  - 'packages/shared/**'
+  - 'package.json'
+  - 'package-lock.json'
+  - '.npmrc'
+  - '.nvmrc'
+  - 'tsconfig.base.json'
+  - 'eslint.config.mjs'
+  - '.prettierrc.json'
+  - '.prettierignore'
+  - '.github/actions/**'
+  - '.github/filters.yml'
+
+api:
+  - *shared
+  - 'apps/api/**'
+  - 'deploy/**'
+  - '.github/workflows/ci-api.yml'
+  - '.github/workflows/cd.yml'
+  - '.github/workflows/_deploy.yml'
+
+web:
+  - *shared
+  - 'apps/web/**'
+  - 'deploy/**'
+  - '.github/workflows/ci-web.yml'
+  - '.github/workflows/cd.yml'
+  - '.github/workflows/_deploy.yml'
