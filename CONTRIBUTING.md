@@ -104,24 +104,19 @@ git push -u origin feature/quick-add
   - Required approvals = **0** — GitHub ไม่ให้เจ้าของ PR approve PR ของตัวเอง ถ้าตั้งเป็น 1 นักพัฒนาคนเดียวจะ merge เข้า `main` ไม่ได้เลย ด่านที่ต้องมีคนกดยืนยันก่อนขึ้น production อยู่ที่ **GitHub Environment `production`** (Phase 12) แทน
 - ✅ **Require status checks to pass**
   - ✅ Require branches to be up to date before merging
-  - Add checks (ต้องมี CI รันอย่างน้อย 1 ครั้งก่อน ชื่อ check ถึงจะขึ้นให้เลือก):
-    - `lint-typecheck`
-    - `test-api`
-    - `test-web`
-    - `build-images (api)`
-    - `build-images (migrate)`
-    - `build-images (web)`
+  - Add checks — **เพียง 2 ตัว** (gate ของแต่ละแอป ดู [docs/cicd.md](docs/cicd.md)):
+    - `api-ci-passed`
+    - `web-ci-passed`
 
 > ถ้าไม่ได้เพิ่ม check ใน "Require status checks" CI จะแค่แสดงกากบาทสีแดง แต่ยัง **merge ได้อยู่ดี**
 > การตั้ง ruleset นี้คือสิ่งที่ทำให้ "PR ที่ test พัง merge ไม่ได้" จริงๆ
 
-## 5. CI (`.github/workflows/ci.yml`)
+## 5. CI/CD
 
-รันทุก pull request และทุก push เข้า `develop` / `main`
+แยก pipeline ของ **API** และ **เว็บ** และแยก **staging** กับ **production** รายละเอียดทั้งหมดอยู่ใน [docs/cicd.md](docs/cicd.md)
 
-| Job              | ทำอะไร                                          | รันเองบนเครื่อง                                                                                            |
-| ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `lint-typecheck` | ESLint, Prettier, `tsc` ทุก workspace           | `npm run db:generate -w @income-expenses/api && npm run lint && npm run format:check && npm run typecheck` |
-| `test-api`       | PostgreSQL 16 + migrate + Vitest coverage ≥ 70% | `npm run test:coverage -w @income-expenses/api`                                                            |
-| `test-web`       | Vitest + Testing Library                        | `npm test -w @income-expenses/web`                                                                         |
-| `build-images`   | build image api / migrate / web (ไม่ push)      | `docker build -f apps/api/Dockerfile --target runtime .`                                                   |
+| สิ่งที่ต้องทำก่อน push | คำสั่ง                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API                    | `npm run db:generate -w @income-expenses/api && npx eslint apps/api packages/shared && npm run typecheck -w @income-expenses/api && npm run test -w @income-expenses/api` |
+| เว็บ                   | `npx eslint apps/web packages/shared && npm run typecheck -w @income-expenses/web && npm test -w @income-expenses/web`                                                    |
+| ทั้งคู่                | `npm run format:check`                                                                                                                                                    |

@@ -1,0 +1,132 @@
+name: CI API
+
+# Runs on EVERY pull request (no `paths:` here on purpose): the `changes` job decides
+# whether API work is needed. Jobs skipped that way still let the `api-ci-passed` gate
+# pass — with a trigger-level `paths:` filter, a web-only PR would wait forever for a
+# required API check that never starts.
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-api-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read # paths-filter reads the PR's changed files
+
+jobs:
+  changes:
+    name: detect API changes
+    runs-on: ubuntu-24.04
+    outputs:
+      api: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: .github/filters.yml
+
+  lint-typecheck:
+    name: api · lint & typecheck
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Generated code (git-ignored): type-aware ESLint needs it or every query is `any`.
+      - run: npm run db:generate --workspace=@income-expenses/api
+      - name: ESLint (api + shared)
+        run: npx eslint apps/api packages/shared
+      - name: Prettier (whole repo — cheap, keeps docs/workflows formatted too)
+        run: npm run format:check
+      - name: TypeScript
+        run: |
+          npm run typecheck --workspace=@income-expenses/shared
+          npm run typecheck --workspace=@income-expenses/api
+
+  test:
+    name: api · test (PostgreSQL 16)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: income_expenses_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d income_expenses_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/income_expenses_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run db:generate --workspace=@income-expenses/api
+      - name: Apply migrations
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: npx prisma migrate deploy
+      - name: Unit + integration tests with coverage (fails under 70 %)
+        run: npm run test:coverage --workspace=@income-expenses/api
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: apps/api/coverage/
+          retention-days: 14
+
+  build-images:
+    name: api · build image (${{ matrix.image }})
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            target: runtime
+          - image: migrate
+            target: migrate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: ${{ matrix.target }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  # The ONLY API check the branch ruleset requires. Always runs; fails if any job failed.
+  gate:
+    name: api-ci-passed
+    needs: [changes, lint-typecheck, test, build-images]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Evaluate results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if echo "$RESULTS" | jq -e 'to_entries | any(.value.result == "failure" or .value.result == "cancelled")' > /dev/null; then
+            echo "::error::API pipeline failed"
+            exit 1
+          fi
+          echo "API pipeline OK (skipped jobs = no API changes)"

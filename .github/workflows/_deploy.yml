@@ -1,0 +1,74 @@
+name: deploy (reusable)
+
+# One deployment of ONE app to ONE environment. Called by cd.yml.
+# The logic lives in deploy/deploy.sh (versioned, testable, runnable by hand on the server);
+# this workflow only copies the deploy files and runs the script over SSH.
+#
+# Per GitHub Environment ("staging", "production"):
+#   secrets: SSH_HOST, SSH_PORT, SSH_USER, SSH_PRIVATE_KEY, SSH_HOST_FINGERPRINT
+#   vars:    APP_DOMAIN, API_DOMAIN, DEPLOY_PATH
+# "production" has Required reviewers → the job pauses until someone approves.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      service:
+        type: string
+        required: true
+      image-tag:
+        type: string
+        required: true
+
+jobs:
+  deploy:
+    name: deploy → ${{ inputs.environment }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.service == 'api' && format('https://{0}/api/v1/health', vars.API_DOMAIN) || format('https://{0}', vars.APP_DOMAIN) }}
+    # One deployment per server environment at a time (api and web share it).
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy deploy files to the server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Pin the server's host key: refuse to talk to an impostor (MITM).
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          source: deploy/docker-compose.prod.yml,deploy/deploy.sh,deploy/backup.sh
+          target: ${{ vars.DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: Deploy ${{ inputs.service }} ${{ inputs.image-tag }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          command_timeout: 15m
+          script_stop: true
+          script: |
+            cd "${{ vars.DEPLOY_PATH }}"
+            chmod +x deploy.sh backup.sh
+            ./deploy.sh "${{ inputs.service }}" "${{ inputs.image-tag }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### ${{ inputs.service }} → ${{ inputs.environment }}: ${{ job.status }}"
+            echo "- image tag: \`${{ inputs.image-tag }}\`"
+            echo "- health: ${{ inputs.service == 'api' && format('https://{0}/api/v1/ready', vars.API_DOMAIN) || format('https://{0}/healthz', vars.APP_DOMAIN) }}"
+          } >> "$GITHUB_STEP_SUMMARY"
