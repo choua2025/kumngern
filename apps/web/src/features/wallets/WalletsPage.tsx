@@ -1,7 +1,7 @@
 import type { WalletDto } from '@income-expenses/shared';
 import { Archive, ArchiveRestore, ArrowLeftRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useDeleteWallet, useUpdateWallet, useWallets } from '../../api/wallets';
 import { Button } from '../../components/Button';

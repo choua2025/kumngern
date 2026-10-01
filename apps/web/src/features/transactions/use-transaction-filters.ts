@@ -3,7 +3,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionSort,
 } from '@income-expenses/shared';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import type { TransactionFilters } from '../../api/transactions';
 
 const PAGE_SIZE = 20;

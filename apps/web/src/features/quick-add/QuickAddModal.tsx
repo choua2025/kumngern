@@ -1,5 +1,5 @@
 import type { TransactionInput } from '@income-expenses/shared';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useCategories } from '../../api/categories';
 import { useCreateTransaction } from '../../api/transactions';
 import { useWallets } from '../../api/wallets';

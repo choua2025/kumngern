@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type LoginInput, loginSchema } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Button } from '../../components/Button';
 import { InputField } from '../../components/Field';
 import { applyApiErrors } from '../../lib/form-errors';
@@ -11,8 +11,6 @@ import { useAuth } from './auth-context';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -29,9 +27,8 @@ export function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
+      // No navigate() here: RedirectIfAuthenticated reacts to the new auth state.
       await login(values);
-      const from = (location.state as { from?: string } | null)?.from ?? '/';
-      navigate(from, { replace: true });
     } catch (error) {
       setFormError(applyApiErrors(error, setError, ['email', 'password']));
     }

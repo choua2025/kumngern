@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTransactions } from '../../api/transactions';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { currentMonthIn, formatMonthLong, lastDayOfMonth } from '../../lib/date';

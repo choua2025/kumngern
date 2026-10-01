@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useBudgets } from '../../api/budgets';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { BudgetProgress } from '../budgets/BudgetProgress';
