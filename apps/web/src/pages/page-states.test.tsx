@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { api } from '../api/client';
 import { BudgetsPage } from '../features/budgets/BudgetsPage';
 import { CategoriesPage } from '../features/categories/CategoriesPage';
+import { RecurringPage } from '../features/recurring/RecurringPage';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { WalletsPage } from '../features/wallets/WalletsPage';
@@ -39,7 +40,7 @@ function emptyBody(url: string): unknown {
     return { currencyCode: 'THB', items: [zeroMonth('2026-09')] };
   if (url.startsWith('/reports/by-category'))
     return { currencyCode: 'THB', total: '0.00', items: [] };
-  return []; // wallets, categories, budgets
+  return []; // wallets, categories, budgets, recurring
 }
 
 function useMode(mode: Mode): void {
@@ -76,6 +77,7 @@ const pages: { name: string; element: ReactElement; emptyText: RegExp | null }[]
   { name: 'Wallets', element: <WalletsPage />, emptyText: /ยังไม่มีกระเป๋าเงิน/ },
   { name: 'Categories', element: <CategoriesPage />, emptyText: /ยังไม่มีหมวด/ },
   { name: 'Budgets', element: <BudgetsPage />, emptyText: /ยังไม่ได้ตั้งงบ/ },
+  { name: 'Recurring', element: <RecurringPage />, emptyText: /ยังไม่มีรายการประจำ/ },
   { name: 'Reports', element: <ReportsPage />, emptyText: /ไม่มีรายจ่ายในเดือนนี้/ },
   // Settings is a form: it has loading and error states, "empty" does not apply.
   { name: 'Settings', element: <SettingsPage />, emptyText: null },

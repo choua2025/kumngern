@@ -11,6 +11,7 @@ export const queryKeys = {
   categories: (type?: 'income' | 'expense') => ['categories', { type }] as const,
   transactions: (filters: Partial<ListTransactionsQuery>) => ['transactions', filters] as const,
   budgets: (month: string) => ['budgets', month] as const,
+  recurring: ['recurring'] as const,
   reports: {
     summary: (month: string) => ['reports', 'summary', month] as const,
     byCategory: (from: string, to: string, type: string) =>
