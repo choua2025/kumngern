@@ -770,7 +770,11 @@ Soft delete (`deleted_at = now()`)
 - รวมกับของเดิมแล้วต้องไม่เกิน 3 → `409`
 - ไฟล์ละ ≤ 5 MB → `400`
 - ตรวจชนิดจาก **magic bytes** ว่าเป็น JPEG / PNG / WEBP / PDF (ไม่เชื่อ `Content-Type` จาก client) → `400`
-- เก็บที่ `/app/uploads/<userId>/<uuid>.<ext>`, ถ้า INSERT DB พลาดให้ลบไฟล์ที่เขียนไปแล้ว
+- เก็บที่ `/app/uploads/<userId>/<uuid>.<ext>` (root จาก env `UPLOAD_DIR`), ถ้า INSERT DB พลาดให้ลบไฟล์ที่เขียนไปแล้ว
+- ส่งเกิน 3 ไฟล์ในคำขอเดียว → `400`, ไม่มีไฟล์หรือใช้ field อื่นที่ไม่ใช่ `files` → `400`
+- นับจำนวนไฟล์เดิมซ้ำอีกครั้งหลัง lock แถว transaction (`FOR UPDATE`) จึงอัปโหลดพร้อมกันก็ไม่เกิน 3
+- ชื่อไฟล์จาก client ใช้แสดงผลอย่างเดียว (ตัด path ออก, ลบ control characters, ยาวไม่เกิน 255) ไม่เคยใช้เป็น path บนดิสก์
+- ⚠️ nginx ทุกตัวที่อยู่หน้า API ต้องตั้ง `client_max_body_size` ≥ 16m (web nginx ตั้ง 20m ไว้แล้ว) ไม่อย่างนั้นไฟล์ > 1 MB จะโดน `413` ก่อนถึง API
 
 ```json
 201 { "data": [ { "id": "7", "originalName": "receipt.jpg", "mimeType": "image/jpeg", "sizeBytes": 245120, "uploadedAt": "..." } ] }
@@ -780,7 +784,8 @@ Errors: `400`, `404` (transaction ไม่ใช่ของผู้ใช้�
 
 ### `GET /attachments/:id`
 
-- ตรวจว่า attachment → transaction → `user_id` = ผู้ใช้ปัจจุบัน
+- ตรวจว่า attachment → transaction → `user_id` = ผู้ใช้ปัจจุบัน (ไฟล์ของรายการที่อยู่ในถังขยะยังเปิดได้ เพื่อให้กู้คืนแล้วไฟล์ยังอยู่ครบ)
+- record มีอยู่แต่ไฟล์หายจากดิสก์ → log error และตอบ `404`
 - Response: stream ไฟล์ด้วย `Content-Type` จาก DB, `Content-Disposition: inline; filename*=UTF-8''<encoded>`, `X-Content-Type-Options: nosniff`, `Cache-Control: private, max-age=0`
   Errors: `404`
 
