@@ -4,6 +4,7 @@ import { validate } from '../../middlewares/validate.js';
 import { transactionsController } from './transactions.controller.js';
 import {
   createTransactionRequest,
+  exportTransactionsRequest,
   listTransactionsRequest,
   transactionIdRequest,
   updateTransactionRequest,
@@ -15,7 +16,8 @@ export function createTransactionsRouter(): Router {
 
   router.get('/', validate(listTransactionsRequest), transactionsController.list);
   router.post('/', validate(createTransactionRequest), transactionsController.create);
-  // Static paths such as /export.csv (Phase 13) must be registered BEFORE /:id.
+  // Static paths must be registered BEFORE /:id, or "export.csv" would be parsed as an id.
+  router.get('/export.csv', validate(exportTransactionsRequest), transactionsController.exportCsv);
   router.get('/:id', validate(transactionIdRequest), transactionsController.get);
   router.patch('/:id', validate(updateTransactionRequest), transactionsController.update);
   router.delete('/:id', validate(transactionIdRequest), transactionsController.delete);

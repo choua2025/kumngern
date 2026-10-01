@@ -12,6 +12,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { flattenCategories, useCategories } from '../../api/categories';
 import { useCreateTransaction, useUpdateTransaction } from '../../api/transactions';
+import { useTags } from '../../api/tags';
 import { useWallets } from '../../api/wallets';
 import { Button } from '../../components/Button';
 import { InputField, SelectField } from '../../components/Field';
@@ -32,6 +33,7 @@ const formSchema = z
     toAmount: z.string(),
     note: optionalText(255),
     occurredAtLocal: z.string().min(1, 'กรุณาระบุวันเวลา'),
+    tagIds: z.array(z.string()).max(10, 'แท็กได้สูงสุด 10 แท็ก'),
   })
   .superRefine((value, ctx) => {
     if (value.type === 'transfer') {
@@ -72,6 +74,7 @@ function Body({
     register,
     handleSubmit,
     watch,
+    setValue,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -88,10 +91,13 @@ function Body({
         transaction?.occurredAt ?? new Date().toISOString(),
         user.timezone,
       ),
+      tagIds: transaction?.tags.map((tag) => tag.id) ?? [],
     },
   });
 
   const type = watch('type');
+  const selectedTags = watch('tagIds');
+  const tags = useTags();
   const source = wallets.find((w) => w.id === watch('walletId'));
   const target = wallets.find((w) => w.id === watch('toWalletId'));
   const crossCurrency =
@@ -111,6 +117,7 @@ function Body({
       toAmount: isTransfer && crossCurrency ? parsed.toAmount || null : null,
       note: parsed.note ?? null,
       occurredAt: fromDateTimeLocalValue(parsed.occurredAtLocal, user.timezone),
+      tagIds: parsed.tagIds,
     };
     try {
       if (transaction) {
@@ -227,6 +234,42 @@ function Body({
         {...register('occurredAtLocal')}
       />
       <InputField label="บันทึกช่วยจำ" error={errors.note?.message} {...register('note')} />
+      {(tags.data?.length ?? 0) > 0 && (
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+            แท็ก
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {tags.data?.map((tag) => {
+              const selected = selectedTags.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setValue(
+                      'tagIds',
+                      selected
+                        ? selectedTags.filter((id) => id !== tag.id)
+                        : [...selectedTags, tag.id],
+                      { shouldValidate: true },
+                    )
+                  }
+                  className={
+                    selected
+                      ? 'rounded-full bg-blue-600 px-3 py-1 text-sm text-white'
+                      : 'rounded-full px-3 py-1 text-sm ring-1 ring-slate-300 ring-inset hover:bg-slate-50 dark:ring-slate-700 dark:hover:bg-slate-800'
+                  }
+                >
+                  #{tag.name}
+                </button>
+              );
+            })}
+          </div>
+          {errors.tagIds && <p className="mt-1 text-sm text-red-600">{errors.tagIds.message}</p>}
+        </fieldset>
+      )}
       <Button type="submit" loading={isSubmitting} className="w-full">
         บันทึก
       </Button>

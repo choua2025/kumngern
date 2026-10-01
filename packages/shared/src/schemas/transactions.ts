@@ -84,16 +84,27 @@ export const TRANSACTION_SORTS = [
 ] as const;
 export type TransactionSort = (typeof TRANSACTION_SORTS)[number];
 
+/** Filters shared by the list and the CSV export (same rules, one definition). */
+const transactionFilterFields = {
+  from: localDateSchema.optional(),
+  to: localDateSchema.optional(),
+  type: z.enum(TRANSACTION_TYPES).optional(),
+  walletId: idSchema.optional(),
+  categoryId: idSchema.optional(),
+  tagId: idSchema.optional(),
+  q: z.string().trim().min(1).max(100).optional(),
+  deleted: z.stringbool().default(false),
+  sort: z.enum(TRANSACTION_SORTS).default('occurredAt:desc'),
+};
+
+const validDateRange = <T extends { from?: string | undefined; to?: string | undefined }>(
+  value: T,
+) => !value.from || !value.to || value.from <= value.to;
+const dateRangeError = { message: 'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด', path: ['to'] };
+
 export const listTransactionsQuerySchema = z
   .object({
-    from: localDateSchema.optional(),
-    to: localDateSchema.optional(),
-    type: z.enum(TRANSACTION_TYPES).optional(),
-    walletId: idSchema.optional(),
-    categoryId: idSchema.optional(),
-    tagId: idSchema.optional(),
-    q: z.string().trim().min(1).max(100).optional(),
-    deleted: z.stringbool().default(false),
+    ...transactionFilterFields,
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce
       .number()
@@ -101,10 +112,14 @@ export const listTransactionsQuerySchema = z
       .min(1)
       .max(PAGINATION_MAX_LIMIT)
       .default(PAGINATION_DEFAULT_LIMIT),
-    sort: z.enum(TRANSACTION_SORTS).default('occurredAt:desc'),
   })
-  .refine((value) => !value.from || !value.to || value.from <= value.to, {
-    message: 'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด',
-    path: ['to'],
-  });
+  .refine(validDateRange, dateRangeError);
 export type ListTransactionsQuery = z.output<typeof listTransactionsQuerySchema>;
+
+export const exportTransactionsQuerySchema = z
+  .object(transactionFilterFields)
+  .refine(validDateRange, dateRangeError);
+export type ExportTransactionsQuery = z.output<typeof exportTransactionsQuerySchema>;
+
+/** Hard cap for one CSV export (protects the server; the UI tells the user to narrow the range). */
+export const MAX_EXPORT_ROWS = 50_000;
