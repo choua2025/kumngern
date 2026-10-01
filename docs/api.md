@@ -749,8 +749,15 @@ Soft delete (`deleted_at = now()`)
 
 ### Cron job (ไม่ใช่ endpoint)
 
-- รันทุกวัน 00:05 (timezone ของ server จาก env `CRON_TZ`)
-- `occurredAt` ของรายการที่สร้าง = `nextRunDate` เวลา 00:00 ตาม timezone ของผู้ใช้
+- รันทุกวัน 00:05 (timezone ของ schedule จาก env `CRON_TZ`, ปิดได้ด้วย `CRON_ENABLED=false`)
+- "ถึงกำหนด" = `isActive` และ `nextRunDate ≤ วันนี้ตาม timezone ของเจ้าของ`
+- `occurredAt` ของรายการที่สร้าง = `nextRunDate` เวลา 00:00 ตาม timezone ของผู้ใช้ และ `recurringId` ชี้กลับมาที่ recurring
+- **Catch-up:** ถ้าพลาดไปหลายรอบ (server ล่ม) จะสร้างให้ครบทุกรอบที่ค้าง สูงสุด 366 รายการต่อ recurring ต่อการรันหนึ่งครั้ง
+- ผ่าน `endDate` แล้ว → `isActive = false` (`nextRunDate` จึงอาจเลยวัน `endDate` ไปได้ ตาม design-doc X9)
+- กระเป๋าถูก archive → ไม่สร้างรายการ และตั้ง `isActive = false` ให้แทน (business rule 4)
+- เปิดใช้งาน (`isActive: true`) recurring ที่หยุดไว้และ `nextRunDate` ผ่านไปแล้ว → `400` ต้องเลื่อน `nextRunDate` เป็นวันนี้หรือหลังจากนี้ก่อน (กันการสร้างย้อนหลังโดยไม่ตั้งใจ)
+- พ่วงงานลบ refresh token ที่หมดอายุแล้ว
+- รันเองครั้งเดียว: `npm run job:recurring -w apps/api` (dev) หรือ `docker compose exec api node dist/jobs/run-recurring.js` (production) ซึ่งรันพร้อม cron ได้อย่างปลอดภัย
 - รายละเอียด idempotency ดู design-doc D8
 
 ---

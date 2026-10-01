@@ -4,6 +4,7 @@ export * from './schemas/budgets.js';
 export * from './schemas/categories.js';
 export * from './schemas/common.js';
 export * from './schemas/primitives.js';
+export * from './schemas/recurring.js';
 export * from './schemas/reports.js';
 export * from './schemas/tags.js';
 export * from './schemas/transactions.js';

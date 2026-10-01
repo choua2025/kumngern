@@ -20,6 +20,9 @@ const CategoriesPage = lazy(() =>
 const BudgetsPage = lazy(() =>
   import('./features/budgets/BudgetsPage').then((m) => ({ default: m.BudgetsPage })),
 );
+const RecurringPage = lazy(() =>
+  import('./features/recurring/RecurringPage').then((m) => ({ default: m.RecurringPage })),
+);
 const ReportsPage = lazy(() =>
   import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
 );
@@ -97,6 +100,14 @@ export function App() {
           element={
             <Page>
               <BudgetsPage />
+            </Page>
+          }
+        />
+        <Route
+          path="recurring"
+          element={
+            <Page>
+              <RecurringPage />
             </Page>
           }
         />
