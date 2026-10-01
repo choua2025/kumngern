@@ -103,12 +103,20 @@ flowchart TD
     D -. migrate พัง .-> R
 ```
 
-| health check | URL                                                                |
-| ------------ | ------------------------------------------------------------------ |
-| api          | `https://$API_DOMAIN/api/v1/ready` (API + DB ผ่าน host nginx จริง) |
-| web          | `https://$APP_DOMAIN/healthz`                                      |
+deploy แต่ละตัว **ตรวจหน่วยของตัวเอง** deploy ครั้งแรกจึงทำได้ไม่ว่าจะ deploy ตัวไหนก่อน
+
+| health check | ตรวจอะไร                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| api          | `/api/v1/ready` จาก**ใน container** (API + DB) และถ้า web deploy แล้ว ตรวจ `https://$API_DOMAIN/api/v1/ready` ผ่าน nginx ทั้งสายด้วย |
+| web          | `https://$APP_DOMAIN/healthz` และถ้า api deploy แล้ว ตรวจ `https://$APP_DOMAIN/api/v1/ready` ด้วย (end-to-end)                       |
+
+ทำไมไม่ใช้ URL สาธารณะอย่างเดียว: API เข้าถึงได้เฉพาะผ่าน nginx ของ web container ใน deploy ครั้งแรกบน staging (2026-10-01)
+ตอนที่ web ยังไม่มี health check ของ API จึงได้ 502 ทุกครั้ง ทั้งที่ API ทำงานปกติ
+
+deploy ครั้งแรกที่ไม่ผ่าน health check → ไม่มีเวอร์ชันให้ rollback → `deploy.sh` จะหยุด container ตัวนั้น และคืนค่า tag ใน `.env` ให้ตรงกับความจริง
 
 ทดสอบบนเครื่องแล้วทั้ง 4 กรณี: deploy ครั้งแรก, API ครั้งแรก (มี backup + migrate), **release ที่ crash → rollback อัตโนมัติ**, migration fail → container ไม่ถูกแตะ + `.env` ถูกคืนค่า
+และ deploy จริงครั้งแรกบน staging ผ่านแล้ว (API ก่อน แล้วตามด้วย web)
 
 > ⚠️ **Rollback ย้อนได้แค่ image ไม่ย้อน migration** migration ทุกตัวจึงต้อง backward compatible (expand → migrate → contract) ถ้าจำเป็นต้องย้อน schema จริงๆ ให้ restore จาก `backups/db-*-pre-deploy-*.sql.gz` ที่ deploy.sh สร้างไว้ก่อนทุกครั้ง
 

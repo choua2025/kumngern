@@ -46,18 +46,43 @@ esac
 
 APP_DOMAIN="$(env_get APP_DOMAIN)"
 API_DOMAIN="$(env_get API_DOMAIN)"
-if [ -z "$HEALTH_URL" ] && [ "$SERVICE" = api ]; then
-  HEALTH_URL="https://${API_DOMAIN:?API_DOMAIN missing in .env}/api/v1/ready"
-elif [ -z "$HEALTH_URL" ]; then
-  HEALTH_URL="https://${APP_DOMAIN:?APP_DOMAIN missing in .env}/healthz"
-fi
+: "${APP_DOMAIN:?APP_DOMAIN missing in .env}" "${API_DOMAIN:?API_DOMAIN missing in .env}"
+
+# A tag of "not-deployed" (or none) means that app has never run here.
+is_deployed() { local tag; tag="$(env_get "$1")"; [ -n "$tag" ] && [ "$tag" != not-deployed ]; }
+
+http_code() { curl -s -o /dev/null -m 5 -w '%{http_code}' "$1" || true; }
+
+# Each deploy verifies its OWN unit, so the very first deploy works in either order:
+#   api → readiness from inside the container (database reachable). The public URL is
+#         checked too once web exists — the api is only reachable through web's nginx.
+#   web → end to end through both nginx: /healthz, plus /api/v1/ready if the api is deployed.
+check_once() {
+  if [ -n "$HEALTH_URL" ]; then # local testing override
+    [ "$(http_code "$HEALTH_URL")" = 200 ]
+    return
+  fi
+  if [ "$SERVICE" = api ]; then
+    "${COMPOSE[@]}" exec -T api wget -qO /dev/null http://127.0.0.1:3000/api/v1/ready 2> /dev/null || return 1
+    if is_deployed WEB_IMAGE_TAG; then
+      [ "$(http_code "https://$API_DOMAIN/api/v1/ready")" = 200 ] || return 1
+    fi
+  else
+    [ "$(http_code "https://$APP_DOMAIN/healthz")" = 200 ] || return 1
+    if is_deployed API_IMAGE_TAG; then
+      [ "$(http_code "https://$APP_DOMAIN/api/v1/ready")" = 200 ] || return 1
+    fi
+  fi
+}
 
 healthy() {
-  local attempt code
+  local attempt
   for ((attempt = 1; attempt <= HEALTH_ATTEMPTS; attempt++)); do
-    code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$HEALTH_URL" || true)"
-    echo "  health check ${attempt}/${HEALTH_ATTEMPTS}: HTTP ${code}"
-    [ "$code" = 200 ] && return 0
+    if check_once; then
+      echo "  health check ${attempt}/${HEALTH_ATTEMPTS}: ok"
+      return 0
+    fi
+    echo "  health check ${attempt}/${HEALTH_ATTEMPTS}: not ready"
     sleep "$HEALTH_INTERVAL"
   done
   return 1
@@ -109,7 +134,7 @@ log "Starting $SERVICE $NEW_TAG"
 SWITCHED=1
 "${COMPOSE[@]}" up -d --no-deps "$SERVICE"
 
-log "Health check $HEALTH_URL"
+log "Health check"
 if healthy; then
   log "✅ $SERVICE $NEW_TAG is healthy"
   docker image prune -f > /dev/null
@@ -117,11 +142,18 @@ if healthy; then
 fi
 
 # --- 5. rollback ----------------------------------------------------------------------
-if [ -z "$PREVIOUS_TAG" ] || [ "$PREVIOUS_TAG" = "$NEW_TAG" ]; then
+"${COMPOSE[@]}" logs --tail=50 "$SERVICE" || true
+if [ -z "$PREVIOUS_TAG" ] || [ "$PREVIOUS_TAG" = not-deployed ]; then
+  # First deploy: nothing to go back to. Stop the broken container so .env and reality agree.
+  log "❌ Unhealthy on its first deploy — stopping $SERVICE"
+  "${COMPOSE[@]}" rm -sf "$SERVICE"
+  env_set "$TAG_VAR" "${PREVIOUS_TAG:-not-deployed}"
+  die "$SERVICE $NEW_TAG is unhealthy (first deploy, nothing to roll back to)"
+fi
+if [ "$PREVIOUS_TAG" = "$NEW_TAG" ]; then
   die "$SERVICE $NEW_TAG is unhealthy and there is no previous version to roll back to"
 fi
 log "❌ Unhealthy — rolling back $SERVICE to $PREVIOUS_TAG"
-"${COMPOSE[@]}" logs --tail=50 "$SERVICE" || true
 env_set "$TAG_VAR" "$PREVIOUS_TAG"
 "${COMPOSE[@]}" up -d --no-deps "$SERVICE"
 if healthy; then
