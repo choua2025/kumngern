@@ -24,6 +24,18 @@ export const transactionDetailInclude = {
   },
 } satisfies Prisma.TransactionInclude;
 
+/** Flat view for the CSV export (parent category name, tag names). */
+export const transactionExportInclude = {
+  wallet: { select: { name: true, currencyCode: true } },
+  toWallet: { select: { name: true, currencyCode: true } },
+  category: { select: { name: true, parent: { select: { name: true } } } },
+  tags: { select: { tag: { select: { name: true } } }, orderBy: { tag: { name: 'asc' } } },
+} satisfies Prisma.TransactionInclude;
+
+export type TransactionExportRow = Prisma.TransactionGetPayload<{
+  include: typeof transactionExportInclude;
+}>;
+
 export type TransactionRow = Prisma.TransactionGetPayload<{ include: typeof transactionInclude }>;
 export type TransactionDetailRow = Prisma.TransactionGetPayload<{
   include: typeof transactionDetailInclude;
@@ -54,6 +66,31 @@ export const transactionsRepository = {
       prisma.transaction.count({ where }),
     ]);
     return { rows, total };
+  },
+
+  /**
+   * Yields matching rows in batches using cursor pagination: a 50 000-row export never sits
+   * in memory at once, and never pays for a slow OFFSET.
+   */
+  async *streamForExport(
+    where: Prisma.TransactionWhereInput,
+    orderBy: Prisma.TransactionOrderByWithRelationInput[],
+    batchSize = 1000,
+  ): AsyncGenerator<TransactionExportRow[]> {
+    let cursor: bigint | undefined;
+    for (;;) {
+      const rows = await prisma.transaction.findMany({
+        where,
+        orderBy,
+        include: transactionExportInclude,
+        take: batchSize,
+        ...(cursor === undefined ? {} : { skip: 1, cursor: { id: cursor } }),
+      });
+      if (rows.length === 0) return;
+      yield rows;
+      if (rows.length < batchSize) return;
+      cursor = rows[rows.length - 1]?.id;
+    }
   },
 
   findActiveById(userId: bigint, id: bigint, db: Db = prisma) {

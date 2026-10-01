@@ -7,12 +7,15 @@ import { config } from './config/index.js';
 import { httpLogger } from './lib/http-logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { createRateLimiter } from './middlewares/rate-limit.js';
+import { createAttachmentsRouter } from './modules/attachments/attachments.router.js';
 import { createAuthRouter } from './modules/auth/auth.router.js';
 import { createBudgetsRouter } from './modules/budgets/budgets.router.js';
 import { createCategoriesRouter } from './modules/categories/categories.router.js';
 import { createCurrenciesRouter } from './modules/currencies/currencies.router.js';
 import { healthRouter } from './modules/health/health.router.js';
+import { createRecurringRouter } from './modules/recurring/recurring.router.js';
 import { createReportsRouter } from './modules/reports/reports.router.js';
+import { createTagsRouter } from './modules/tags/tags.router.js';
 import { createTransactionsRouter } from './modules/transactions/transactions.router.js';
 import { createUsersRouter } from './modules/users/users.router.js';
 import { createWalletsRouter } from './modules/wallets/wallets.router.js';
@@ -54,6 +57,9 @@ export function createApp(): Express {
   api.use('/transactions', createTransactionsRouter());
   api.use('/budgets', createBudgetsRouter());
   api.use('/reports', createReportsRouter());
+  api.use('/recurring', createRecurringRouter());
+  api.use('/tags', createTagsRouter());
+  api.use('/attachments', createAttachmentsRouter());
 
   app.use(API_PREFIX, api);
 

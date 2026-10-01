@@ -7,12 +7,13 @@ import {
   Moon,
   PiggyBank,
   Plus,
+  Repeat,
   Settings,
   Sun,
   Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router';
 import { useAuth } from '../features/auth/auth-context';
 import { QuickAddModal } from '../features/quick-add/QuickAddModal';
 import { useHotkey } from '../features/quick-add/use-hotkey';
@@ -24,6 +25,7 @@ const NAV = [
   { to: '/transactions', label: 'รายการ', icon: ArrowLeftRight, mobile: true },
   { to: '/wallets', label: 'กระเป๋า', icon: Wallet, mobile: true },
   { to: '/budgets', label: 'งบประมาณ', icon: PiggyBank, mobile: true },
+  { to: '/recurring', label: 'รายการประจำ', icon: Repeat, mobile: false },
   { to: '/reports', label: 'รายงาน', icon: ChartPie, mobile: false },
   { to: '/categories', label: 'หมวดหมู่', icon: FolderTree, mobile: false },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings, mobile: true },

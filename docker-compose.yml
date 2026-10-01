@@ -52,6 +52,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-debug}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-income_expenses}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env}
+      UPLOAD_DIR: /app/uploads
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:

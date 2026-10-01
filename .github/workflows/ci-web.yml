@@ -1,0 +1,117 @@
+name: CI Web
+
+# Same pattern as ci-api.yml: always triggered, `changes` decides, `web-ci-passed` is
+# the single required check.
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-web-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: detect web changes
+    runs-on: ubuntu-24.04
+    outputs:
+      web: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: .github/filters.yml
+
+  lint-typecheck:
+    name: web · lint & typecheck
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: ESLint (web + shared)
+        run: npx eslint apps/web packages/shared
+      - name: Prettier (whole repo)
+        run: npm run format:check
+      - name: TypeScript
+        run: |
+          npm run typecheck --workspace=@income-expenses/shared
+          npm run typecheck --workspace=@income-expenses/web
+
+  test:
+    name: web · test
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Component tests (Vitest + Testing Library)
+        run: npm test --workspace=@income-expenses/web
+
+  build:
+    name: web · production bundle
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: vite build
+        working-directory: apps/web
+        run: npx vite build
+      - name: Bundle size summary
+        working-directory: apps/web
+        run: |
+          {
+            echo "### Web bundle"
+            echo '| file | size | gzip |'
+            echo '|---|---|---|'
+            for f in dist/assets/*.js dist/assets/*.css; do
+              echo "| $(basename "$f") | $(du -h "$f" | cut -f1) | $(gzip -c "$f" | wc -c | awk '{printf "%.1f kB", $1/1024}') |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-image:
+    name: web · build image
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          target: runtime
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  gate:
+    name: web-ci-passed
+    needs: [changes, lint-typecheck, test, build, build-image]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Evaluate results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if echo "$RESULTS" | jq -e 'to_entries | any(.value.result == "failure" or .value.result == "cancelled")' > /dev/null; then
+            echo "::error::Web pipeline failed"
+            exit 1
+          fi
+          echo "Web pipeline OK (skipped jobs = no web changes)"

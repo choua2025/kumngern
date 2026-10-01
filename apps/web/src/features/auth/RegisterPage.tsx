@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type RegisterInput, registerSchema } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useCurrencies } from '../../api/auth';
 import { Button } from '../../components/Button';
 import { InputField, SelectField } from '../../components/Field';
@@ -12,7 +12,6 @@ import { useAuth } from './auth-context';
 
 export function RegisterPage() {
   const { register: registerAccount } = useAuth();
-  const navigate = useNavigate();
   const currencies = useCurrencies();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -29,8 +28,8 @@ export function RegisterPage() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
+      // No navigate() here: RedirectIfAuthenticated reacts to the new auth state.
       await registerAccount(values);
-      navigate('/', { replace: true });
     } catch (error) {
       setFormError(
         applyApiErrors(error, setError, ['email', 'password', 'displayName', 'defaultCurrency']),

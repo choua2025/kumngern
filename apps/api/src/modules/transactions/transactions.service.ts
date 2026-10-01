@@ -1,5 +1,7 @@
 import {
+  type ExportTransactionsQuery,
   type ListTransactionsQuery,
+  MAX_EXPORT_ROWS,
   type ParsedTransactionInput,
   type PaginationMeta,
   type TransactionDetailDto,
@@ -12,7 +14,8 @@ import { type Db, runInTransaction, type TransactionRunner } from '../../lib/db.
 import { errors } from '../../lib/errors.js';
 import { toDecimal } from '../../lib/money.js';
 import { escapeLikePattern, toBigIntId } from '../../lib/params.js';
-import { localDateRangeToUtc } from '../../lib/time.js';
+import { csvCell, csvRow, UTF8_BOM } from '../../lib/csv.js';
+import { localDateRangeToUtc, toLocalDateTime } from '../../lib/time.js';
 import { zodIssuesToDetails } from '../../middlewares/validate.js';
 import {
   type CategoriesRepository,
@@ -24,6 +27,7 @@ import { type WalletsRepository, walletsRepository } from '../wallets/wallets.re
 import { toTransactionDetailDto, toTransactionDto } from './transactions.mapper.js';
 import {
   type TransactionDetailRow,
+  type TransactionExportRow,
   type TransactionsRepository,
   type TransactionWriteData,
   transactionsRepository,
@@ -38,6 +42,68 @@ interface TransactionsServiceDeps {
   tags: TagsRepository;
   users: UsersRepository;
   transaction: TransactionRunner;
+}
+
+type FilterQuery = Omit<ListTransactionsQuery, 'page' | 'limit'>;
+
+/** WHERE clause for the list AND the CSV export — one definition of every filter. */
+export function buildFilterWhere(
+  userId: bigint,
+  query: FilterQuery,
+  timezone: string,
+): Prisma.TransactionWhereInput {
+  // Rule 9: "from/to" are calendar days in the USER's timezone, not UTC.
+  const occurredAt = localDateRangeToUtc(query.from, query.to, timezone);
+  const walletId = toBigIntId(query.walletId);
+  const categoryId = toBigIntId(query.categoryId);
+  const tagId = toBigIntId(query.tagId);
+  return {
+    userId,
+    deletedAt: query.deleted ? { not: null } : null,
+    ...(query.type ? { type: query.type } : {}),
+    ...(occurredAt.gte || occurredAt.lt ? { occurredAt } : {}),
+    ...(walletId ? { OR: [{ walletId }, { toWalletId: walletId }] } : {}),
+    // A parent category includes its children (design-doc X7).
+    ...(categoryId ? { category: { OR: [{ id: categoryId }, { parentId: categoryId }] } } : {}),
+    ...(tagId ? { tags: { some: { tagId } } } : {}),
+    ...(query.q
+      ? { note: { contains: escapeLikePattern(query.q), mode: 'insensitive' as const } }
+      : {}),
+  };
+}
+
+const CSV_HEADER = [
+  'date',
+  'time',
+  'type',
+  'wallet',
+  'to_wallet',
+  'category',
+  'parent_category',
+  'amount',
+  'to_amount',
+  'currency',
+  'note',
+  'tags',
+];
+
+function toCsvLine(row: TransactionExportRow, timezone: string): string {
+  const { date, time } = toLocalDateTime(row.occurredAt, timezone);
+  return csvRow([
+    date,
+    time,
+    row.type,
+    csvCell(row.wallet.name),
+    csvCell(row.toWallet?.name),
+    // A sub-category shows "กาแฟ" with parent "อาหาร"; a root category has no parent.
+    csvCell(row.category?.name),
+    csvCell(row.category?.parent?.name),
+    csvCell(row.amount.toFixed(2), { numeric: true }),
+    csvCell(row.toAmount?.toFixed(2), { numeric: true }),
+    row.wallet.currencyCode,
+    csvCell(row.note),
+    csvCell(row.tags.map(({ tag }) => tag.name).join('; ')),
+  ]);
 }
 
 function orderByFor(
@@ -170,23 +236,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
       if (!user) {
         throw errors.unauthorized();
       }
-      // Rule 9: "from/to" are calendar days in the USER's timezone, not UTC.
-      const occurredAt = localDateRangeToUtc(query.from, query.to, user.timezone);
-      const walletId = toBigIntId(query.walletId);
-      const categoryId = toBigIntId(query.categoryId);
-      const tagId = toBigIntId(query.tagId);
-
-      const where: Prisma.TransactionWhereInput = {
-        userId,
-        deletedAt: query.deleted ? { not: null } : null,
-        ...(query.type ? { type: query.type } : {}),
-        ...(occurredAt.gte || occurredAt.lt ? { occurredAt } : {}),
-        ...(walletId ? { OR: [{ walletId }, { toWalletId: walletId }] } : {}),
-        // A parent category includes its children (design-doc X7).
-        ...(categoryId ? { category: { OR: [{ id: categoryId }, { parentId: categoryId }] } } : {}),
-        ...(tagId ? { tags: { some: { tagId } } } : {}),
-        ...(query.q ? { note: { contains: escapeLikePattern(query.q), mode: 'insensitive' } } : {}),
-      };
+      const where = buildFilterWhere(userId, query, user.timezone);
 
       const { rows, total } = await transactions.findPage(
         where,
@@ -201,6 +251,39 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
     },
 
     get: (userId: bigint, id: bigint) => getOrThrow(userId, id),
+
+    /**
+     * CSV export with the same filters as the list. The user lookup happens BEFORE the
+     * first byte is sent (errors can still become a JSON 4xx); rows are then produced
+     * lazily, batch by batch.
+     */
+    async exportCsv(
+      userId: bigint,
+      query: ExportTransactionsQuery,
+    ): Promise<{ filename: string; chunks: AsyncGenerator<string> }> {
+      const user = await users.findById(userId);
+      if (!user) {
+        throw errors.unauthorized();
+      }
+      // Captured here: TypeScript does not carry the null-check into the generator closure.
+      const timezone = user.timezone;
+      const where = buildFilterWhere(userId, query, timezone);
+      const orderBy = orderByFor(query.sort);
+      const today = toLocalDateTime(new Date(), timezone).date;
+
+      async function* chunks(): AsyncGenerator<string> {
+        yield UTF8_BOM + csvRow(CSV_HEADER);
+        let written = 0;
+        for await (const batch of transactions.streamForExport(where, orderBy)) {
+          const rows = batch.slice(0, MAX_EXPORT_ROWS - written);
+          yield rows.map((row) => toCsvLine(row, timezone)).join('');
+          written += rows.length;
+          if (written >= MAX_EXPORT_ROWS) return;
+        }
+      }
+
+      return { filename: `transactions-${today}.csv`, chunks: chunks() };
+    },
 
     async create(userId: bigint, input: ParsedTransactionInput): Promise<TransactionDetailDto> {
       // Rule 3 (engineering): transaction + tags are written atomically.

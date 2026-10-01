@@ -2,6 +2,7 @@ import type {
   BudgetStatus,
   CategoryType,
   ErrorCode,
+  RecurringFrequency,
   TransactionType,
   WalletType,
 } from '../constants.js';
@@ -184,4 +185,18 @@ export interface TrendReportDto {
 export interface DailyReportDto {
   currencyCode: string;
   items: { date: string; expense: string }[];
+}
+
+export interface RecurringDto {
+  id: string;
+  type: CategoryType;
+  wallet: WalletRefDto;
+  category: CategoryRefDto;
+  amount: string;
+  note: string | null;
+  frequency: RecurringFrequency;
+  /** "YYYY-MM-DD" in the owner's timezone */
+  nextRunDate: string;
+  endDate: string | null;
+  isActive: boolean;
 }

@@ -1,4 +1,5 @@
 import {
+  exportTransactionsQuerySchema,
   listTransactionsQuerySchema,
   transactionInputSchema,
   updateTransactionSchema,
@@ -8,6 +9,9 @@ import type { RequestSchemas } from '../../middlewares/validate.js';
 
 export const listTransactionsRequest = {
   query: listTransactionsQuerySchema,
+} satisfies RequestSchemas;
+export const exportTransactionsRequest = {
+  query: exportTransactionsQuerySchema,
 } satisfies RequestSchemas;
 export const createTransactionRequest = { body: transactionInputSchema } satisfies RequestSchemas;
 export const transactionIdRequest = { params: idParamsSchema } satisfies RequestSchemas;

@@ -1,4 +1,14 @@
+import path from 'node:path';
 import { z } from 'zod';
+
+function isValidTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Every environment variable the API reads, validated once at startup.
@@ -42,6 +52,25 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   /** bcrypt work factor. 12 in production (~250 ms/hash); tests use 4 to stay fast. */
   BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
+
+  /** Attachment storage root, resolved from the working directory. Docker: /app/uploads (a volume). */
+  UPLOAD_DIR: z
+    .string()
+    .min(1)
+    .default('uploads')
+    .transform((value) => path.resolve(value)),
+
+  // --- Scheduled jobs ---
+  /** "false" turns the in-process cron off (e.g. a second API replica, or debugging). */
+  CRON_ENABLED: z
+    .enum(['true', 'false'], { error: 'must be "true" or "false"' })
+    .default('true')
+    .transform((value) => value === 'true'),
+  /** Timezone of the cron schedule (00:05 daily). "Today" per recurring uses users.timezone. */
+  CRON_TZ: z
+    .string()
+    .default('Asia/Bangkok')
+    .refine(isValidTimezone, 'must be an IANA timezone, e.g. Asia/Bangkok'),
 
   /** Grace period for in-flight requests on SIGTERM before the process is killed. */
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),

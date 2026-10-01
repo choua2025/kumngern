@@ -10,7 +10,9 @@ export const queryKeys = {
   wallets: (includeArchived = false) => ['wallets', { includeArchived }] as const,
   categories: (type?: 'income' | 'expense') => ['categories', { type }] as const,
   transactions: (filters: Partial<ListTransactionsQuery>) => ['transactions', filters] as const,
+  transactionDetail: (id: string) => ['transactions', 'detail', id] as const,
   budgets: (month: string) => ['budgets', month] as const,
+  recurring: ['recurring'] as const,
   reports: {
     summary: (month: string) => ['reports', 'summary', month] as const,
     byCategory: (from: string, to: string, type: string) =>

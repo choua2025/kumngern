@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, localDateRangeToUtc, startOfLocalDay } from './time.js';
+import { addDays, localDateRangeToUtc, startOfLocalDay, toLocalDateTime } from './time.js';
 
 describe('startOfLocalDay', () => {
   it('Asia/Bangkok (UTC+7): local midnight is 17:00 UTC the previous day', () => {
@@ -54,5 +54,14 @@ describe('localDateRangeToUtc', () => {
 
   it('omits missing bounds', () => {
     expect(localDateRangeToUtc(undefined, undefined, 'UTC')).toEqual({});
+  });
+});
+
+describe('toLocalDateTime', () => {
+  it('formats an instant as the wall clock of the timezone', () => {
+    const instant = new Date('2026-09-30T17:30:00Z');
+
+    expect(toLocalDateTime(instant, 'Asia/Bangkok')).toEqual({ date: '2026-10-01', time: '00:30' });
+    expect(toLocalDateTime(instant, 'UTC')).toEqual({ date: '2026-09-30', time: '17:30' });
   });
 });

@@ -3,7 +3,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionSort,
 } from '@income-expenses/shared';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import type { TransactionFilters } from '../../api/transactions';
 
 const PAGE_SIZE = 20;
@@ -28,6 +28,7 @@ export function useTransactionFilters() {
       : undefined,
     walletId: get('walletId'),
     categoryId: get('categoryId'),
+    tagId: get('tagId'),
     q: get('q'),
     deleted: params.get('deleted') === 'true',
     sort: TRANSACTION_SORTS.includes(sort as TransactionSort)

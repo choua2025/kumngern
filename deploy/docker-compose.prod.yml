@@ -3,6 +3,7 @@
 #   cd /opt/income-expenses/production    (or staging)
 #   docker compose -f docker-compose.prod.yml up -d
 #   docker compose -f docker-compose.prod.yml run --rm migrate          # apply migrations
+#   ./deploy.sh api <sha> | ./deploy.sh web <sha>                      # what CD runs
 #
 # Values come from .env next to this file (chmod 600, never in Git) — see .env.example.
 # Staging and production use different COMPOSE_PROJECT_NAME and WEB_PORT (8081 / 8080).
@@ -14,6 +15,8 @@ x-logging: &logging
     max-size: 10m
     max-file: '3'
 
+# Image tags default to "not-deployed" so one app can be deployed before the other exists
+# (e.g. the very first deploy). Starting a service whose tag is unset fails loudly on pull.
 x-database-url: &database-url postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:?}
 
 services:
@@ -40,7 +43,7 @@ services:
     logging: *logging
 
   api:
-    image: ghcr.io/${GHCR_OWNER:?}/income-expenses-api:${IMAGE_TAG:?}
+    image: ghcr.io/${GHCR_OWNER:?}/income-expenses-api:${API_IMAGE_TAG:-not-deployed}
     restart: unless-stopped
     depends_on:
       db:
@@ -53,13 +56,17 @@ services:
       TRUST_PROXY: 2
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ORIGINS: ''
+      # The uploads volume below; backup.sh archives it with the database dump.
+      UPLOAD_DIR: /app/uploads
+      CRON_ENABLED: ${CRON_ENABLED:-true}
+      CRON_TZ: ${CRON_TZ:-Asia/Bangkok}
     volumes:
       - uploads:/app/uploads
     networks: [backend, frontend]
     logging: *logging
 
   web:
-    image: ghcr.io/${GHCR_OWNER:?}/income-expenses-web:${IMAGE_TAG:?}
+    image: ghcr.io/${GHCR_OWNER:?}/income-expenses-web:${WEB_IMAGE_TAG:-not-deployed}
     restart: unless-stopped
     depends_on:
       api:
@@ -73,7 +80,7 @@ services:
   # One-off job, not a long-running service: `docker compose run --rm migrate`
   # (`... run --rm migrate npm run db:seed` loads demo data on staging).
   migrate:
-    image: ghcr.io/${GHCR_OWNER:?}/income-expenses-migrate:${IMAGE_TAG:?}
+    image: ghcr.io/${GHCR_OWNER:?}/income-expenses-migrate:${API_IMAGE_TAG:-not-deployed}
     profiles: [tools]
     depends_on:
       db:
