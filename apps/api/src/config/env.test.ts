@@ -33,6 +33,20 @@ describe('parseEnv', () => {
     expect(env.CORS_ORIGINS).toEqual(['http://localhost:5173', 'https://app.example.com']);
   });
 
+  it('parses the cron settings and rejects an unknown timezone', () => {
+    expect(parseEnv(validEnv)).toMatchObject({ CRON_ENABLED: true, CRON_TZ: 'Asia/Bangkok' });
+    expect(parseEnv({ ...validEnv, CRON_ENABLED: 'false' }).CRON_ENABLED).toBe(false);
+    expect(() => parseEnv({ ...validEnv, CRON_ENABLED: 'yes' })).toThrow(/CRON_ENABLED/);
+    expect(() => parseEnv({ ...validEnv, CRON_TZ: 'Mars/Olympus' })).toThrow(/CRON_TZ/);
+  });
+
+  it('parses the cron settings and rejects an unknown timezone', () => {
+    expect(parseEnv(validEnv)).toMatchObject({ CRON_ENABLED: true, CRON_TZ: 'Asia/Bangkok' });
+    expect(parseEnv({ ...validEnv, CRON_ENABLED: 'false' }).CRON_ENABLED).toBe(false);
+    expect(() => parseEnv({ ...validEnv, CRON_ENABLED: 'yes' })).toThrow(/CRON_ENABLED/);
+    expect(() => parseEnv({ ...validEnv, CRON_TZ: 'Mars/Olympus' })).toThrow(/CRON_TZ/);
+  });
+
   it('fails fast and names the missing variable', () => {
     expect(() => parseEnv({})).toThrow(/DATABASE_URL/);
   });
