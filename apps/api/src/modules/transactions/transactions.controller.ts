@@ -1,8 +1,10 @@
+import { once } from 'node:events';
 import { asyncHandler } from '../../lib/async-handler.js';
 import { currentUserId } from '../../middlewares/auth.js';
 import type { ValidatedRequest } from '../../middlewares/validate.js';
 import type {
   createTransactionRequest,
+  exportTransactionsRequest,
   listTransactionsRequest,
   transactionIdRequest,
   updateTransactionRequest,
@@ -13,6 +15,20 @@ export const transactionsController = {
   list: asyncHandler<ValidatedRequest<typeof listTransactionsRequest>>(async (req, res) => {
     const page = await transactionsService.list(currentUserId(req), req.query);
     res.json(page);
+  }),
+
+  exportCsv: asyncHandler<ValidatedRequest<typeof exportTransactionsRequest>>(async (req, res) => {
+    const { filename, chunks } = await transactionsService.exportCsv(currentUserId(req), req.query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    for await (const chunk of chunks) {
+      // Backpressure: if the client reads slowly, wait for 'drain' instead of buffering it all.
+      if (!res.write(chunk)) {
+        await once(res, 'drain');
+      }
+    }
+    res.end();
   }),
 
   get: asyncHandler<ValidatedRequest<typeof transactionIdRequest>>(async (req, res) => {

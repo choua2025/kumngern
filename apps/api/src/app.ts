@@ -13,6 +13,7 @@ import { createCategoriesRouter } from './modules/categories/categories.router.j
 import { createCurrenciesRouter } from './modules/currencies/currencies.router.js';
 import { healthRouter } from './modules/health/health.router.js';
 import { createReportsRouter } from './modules/reports/reports.router.js';
+import { createTagsRouter } from './modules/tags/tags.router.js';
 import { createTransactionsRouter } from './modules/transactions/transactions.router.js';
 import { createUsersRouter } from './modules/users/users.router.js';
 import { createWalletsRouter } from './modules/wallets/wallets.router.js';
@@ -54,6 +55,7 @@ export function createApp(): Express {
   api.use('/transactions', createTransactionsRouter());
   api.use('/budgets', createBudgetsRouter());
   api.use('/reports', createReportsRouter());
+  api.use('/tags', createTagsRouter());
 
   app.use(API_PREFIX, api);
 

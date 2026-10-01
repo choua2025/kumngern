@@ -28,6 +28,7 @@ export function useTransactionFilters() {
       : undefined,
     walletId: get('walletId'),
     categoryId: get('categoryId'),
+    tagId: get('tagId'),
     q: get('q'),
     deleted: params.get('deleted') === 'true',
     sort: TRANSACTION_SORTS.includes(sort as TransactionSort)

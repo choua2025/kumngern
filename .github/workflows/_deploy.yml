@@ -58,7 +58,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
           command_timeout: 15m
-          script_stop: true
           script: |
             cd "${{ vars.DEPLOY_PATH }}"
             chmod +x deploy.sh backup.sh

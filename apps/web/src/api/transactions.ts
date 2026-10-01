@@ -7,6 +7,7 @@ import type {
   UpdateTransactionInput,
 } from '@income-expenses/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { filenameFromDisposition, saveBlob } from '../lib/download';
 import { api } from './client';
 import { LEDGER_KEYS, queryKeys } from './query-keys';
 
@@ -69,4 +70,15 @@ export function useRestoreTransaction() {
       (await api.post<{ data: TransactionDetailDto }>(`/transactions/${id}/restore`)).data.data,
     onSuccess: invalidate,
   });
+}
+
+/** Downloads the CSV for the current filters (pagination is ignored by the API). */
+export async function exportTransactionsCsv(filters: TransactionFilters): Promise<void> {
+  const { page: _page, limit: _limit, ...query } = filters;
+  const response = await api.get<Blob>('/transactions/export.csv', {
+    params: query,
+    responseType: 'blob',
+  });
+  const disposition = response.headers['content-disposition'] as string | undefined;
+  saveBlob(response.data, filenameFromDisposition(disposition, 'transactions.csv'));
 }

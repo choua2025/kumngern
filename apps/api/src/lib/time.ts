@@ -82,3 +82,17 @@ export function localDateRangeToUtc(
     ...(to ? { lt: startOfLocalDay(addDays(to, 1), timezone) } : {}),
   };
 }
+
+/** UTC instant → wall-clock date ("2026-10-01") and time ("00:30") in `timezone`. */
+export function toLocalDateTime(date: Date, timezone: string): { date: string; time: string } {
+  const parts = Object.fromEntries(
+    formatterFor(timezone)
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value.padStart(2, '0')]),
+  );
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`,
+  };
+}

@@ -1,5 +1,13 @@
 import type { TransactionDto } from '@income-expenses/shared';
-import { ChevronLeft, ChevronRight, Pencil, RotateCcw, Search, Trash2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Pencil,
+  RotateCcw,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { flattenCategories, useCategories } from '../../api/categories';
 import { errorMessage } from '../../api/errors';
@@ -8,7 +16,9 @@ import {
   useRestoreTransaction,
   useTransactions,
 } from '../../api/transactions';
+import { useTags } from '../../api/tags';
 import { useWallets } from '../../api/wallets';
+import { exportTransactionsCsv } from '../../api/transactions';
 import { Button } from '../../components/Button';
 import { InputField, SelectField } from '../../components/Field';
 import { Money } from '../../components/Money';
@@ -33,6 +43,7 @@ function Filters() {
   const { filters, update, clear } = useTransactionFilters();
   const wallets = useWallets(true);
   const categories = useCategories();
+  const tags = useTags();
   const [search, setSearch] = useState(filters.q ?? '');
   const debouncedSearch = useDebounced(search, 300);
 
@@ -107,6 +118,18 @@ function Filters() {
           ))}
         </SelectField>
         <SelectField
+          label="แท็ก"
+          value={filters.tagId ?? ''}
+          onChange={(e) => update({ tagId: e.target.value })}
+        >
+          <option value="">ทั้งหมด</option>
+          {tags.data?.map((tag) => (
+            <option key={tag.id} value={tag.id}>
+              #{tag.name}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
           label="เรียงตาม"
           value={filters.sort ?? 'occurredAt:desc'}
           onChange={(e) => update({ sort: e.target.value })}
@@ -151,6 +174,18 @@ export function TransactionsPage() {
   const restoreTransaction = useRestoreTransaction();
   const [editing, setEditing] = useState<TransactionDto | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      await exportTransactionsCsv(filters);
+    } catch (error) {
+      toast.show(errorMessage(error), { tone: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  };
   const inTrash = filters.deleted === true;
 
   const restore = async (tx: TransactionDto) => {
@@ -210,9 +245,19 @@ export function TransactionsPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{inTrash ? 'ถังขยะ' : 'รายการ'}</h1>
-        <Button variant="secondary" onClick={() => setTransferOpen(true)}>
-          โอนเงิน
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            loading={exporting}
+            onClick={() => void exportCsv()}
+            title="ส่งออกตามตัวกรองปัจจุบัน (UTF-8, เปิดใน Excel ได้)"
+          >
+            <Download className="size-4" aria-hidden /> Export CSV
+          </Button>
+          <Button variant="secondary" onClick={() => setTransferOpen(true)}>
+            โอนเงิน
+          </Button>
+        </div>
       </header>
 
       <Filters />

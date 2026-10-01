@@ -10,8 +10,9 @@ import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/stat
 import { useToast } from '../../components/toast';
 import { cn } from '../../lib/cn';
 import { CategoryFormModal } from './CategoryFormModal';
+import { TagsPanel } from './TagsPanel';
 
-type Tab = 'expense' | 'income';
+type Tab = 'expense' | 'income' | 'tags';
 
 function CategoryRow({
   category,
@@ -62,7 +63,9 @@ function CategoryRow({
 
 export function CategoriesPage() {
   const [tab, setTab] = useState<Tab>('expense');
-  const categories = useCategories(tab);
+  // The tags tab shows TagsPanel; keep the expense list cached meanwhile.
+  const categoryType = tab === 'tags' ? 'expense' : tab;
+  const categories = useCategories(categoryType);
   const deleteCategory = useDeleteCategory();
   const toast = useToast();
   const [editing, setEditing] = useState<CategoryDto | 'new' | null>(null);
@@ -84,21 +87,24 @@ export function CategoriesPage() {
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">หมวดหมู่</h1>
-        <Button onClick={() => setEditing('new')}>
-          <Plus className="size-4" aria-hidden /> เพิ่มหมวด
-        </Button>
+        <h1 className="text-2xl font-bold">หมวดหมู่และแท็ก</h1>
+        {tab !== 'tags' && (
+          <Button onClick={() => setEditing('new')}>
+            <Plus className="size-4" aria-hidden /> เพิ่มหมวด
+          </Button>
+        )}
       </header>
 
       <div
         role="tablist"
         aria-label="ประเภทหมวด"
-        className="inline-grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
+        className="inline-grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
       >
         {(
           [
             ['expense', 'รายจ่าย'],
             ['income', 'รายรับ'],
+            ['tags', 'แท็ก'],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -119,48 +125,52 @@ export function CategoriesPage() {
         ))}
       </div>
 
-      <Card>
-        {categories.isPending ? (
-          <LoadingRows rows={8} />
-        ) : categories.isError ? (
-          <ErrorState error={categories.error} onRetry={() => void categories.refetch()} />
-        ) : categories.data.length === 0 ? (
-          <EmptyState
-            title="ยังไม่มีหมวด"
-            action={<Button onClick={() => setEditing('new')}>เพิ่มหมวดแรก</Button>}
-          />
-        ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {categories.data.map((root) => (
-              <li key={root.id}>
-                <ul>
-                  <CategoryRow
-                    category={root}
-                    depth={0}
-                    onEdit={setEditing}
-                    onDelete={setDeleting}
-                  />
-                  {root.children.map((child) => (
+      {tab === 'tags' ? (
+        <TagsPanel />
+      ) : (
+        <Card>
+          {categories.isPending ? (
+            <LoadingRows rows={8} />
+          ) : categories.isError ? (
+            <ErrorState error={categories.error} onRetry={() => void categories.refetch()} />
+          ) : categories.data.length === 0 ? (
+            <EmptyState
+              title="ยังไม่มีหมวด"
+              action={<Button onClick={() => setEditing('new')}>เพิ่มหมวดแรก</Button>}
+            />
+          ) : (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {categories.data.map((root) => (
+                <li key={root.id}>
+                  <ul>
                     <CategoryRow
-                      key={child.id}
-                      category={child}
-                      depth={1}
+                      category={root}
+                      depth={0}
                       onEdit={setEditing}
                       onDelete={setDeleting}
                     />
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+                    {root.children.map((child) => (
+                      <CategoryRow
+                        key={child.id}
+                        category={child}
+                        depth={1}
+                        onEdit={setEditing}
+                        onDelete={setDeleting}
+                      />
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       <CategoryFormModal
-        key={editing === 'new' ? `new-${tab}` : (editing?.id ?? 'closed')}
+        key={editing === 'new' ? `new-${categoryType}` : (editing?.id ?? 'closed')}
         open={editing !== null}
         category={editing === 'new' ? null : editing}
-        type={tab}
+        type={categoryType}
         roots={categories.data ?? []}
         onClose={() => setEditing(null)}
       />
