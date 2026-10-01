@@ -1,7 +1,7 @@
 import { tagNameSchema, type TagRefDto } from '@income-expenses/shared';
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCreateTag, useDeleteTag, useRenameTag, useTags } from '../../api/tags';
 import { Button } from '../../components/Button';

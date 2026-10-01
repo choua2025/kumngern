@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router';
 import { Skeleton } from '../../components/states';
+import { safeRedirectPath } from '../../lib/safe-redirect';
 import { useAuth } from './auth-context';
 
 /** Protected route: not logged in → /login, remembering where the user wanted to go. */
@@ -27,11 +28,17 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return children;
 }
 
-/** For /login and /register: an already logged-in user goes straight to the app. */
+/**
+ * For /login and /register: once the user is authenticated (already, or by submitting
+ * the form) go to the page they originally asked for. This is the ONLY place that
+ * redirects after login — a second navigate() in the form would race with this one.
+ */
 export function RedirectIfAuthenticated({ children }: { children: ReactNode }) {
   const { state } = useAuth();
+  const location = useLocation();
   if (state.status === 'authenticated') {
-    return <Navigate to="/" replace />;
+    const from = (location.state as { from?: unknown } | null)?.from;
+    return <Navigate to={safeRedirectPath(from)} replace />;
   }
   return children;
 }

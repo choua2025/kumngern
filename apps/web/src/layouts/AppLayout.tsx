@@ -13,7 +13,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router';
 import { useAuth } from '../features/auth/auth-context';
 import { QuickAddModal } from '../features/quick-add/QuickAddModal';
 import { useHotkey } from '../features/quick-add/use-hotkey';
