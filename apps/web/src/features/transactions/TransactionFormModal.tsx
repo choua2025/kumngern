@@ -22,6 +22,7 @@ import { useToast } from '../../components/toast';
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from '../../lib/date';
 import { applyApiErrors } from '../../lib/form-errors';
 import { useCurrentUser } from '../auth/auth-context';
+import { AttachmentsSection } from './AttachmentsSection';
 
 const formSchema = z
   .object({
@@ -308,6 +309,8 @@ export function TransactionFormModal({
           onDone={onClose}
         />
       )}
+      {/* Files belong to a saved transaction, so they are managed when editing it. */}
+      {transaction && <AttachmentsSection transactionId={transaction.id} />}
     </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 import { Prisma } from '../generated/prisma/client.js';
 import { AppError, errors } from '../lib/errors.js';
@@ -10,6 +11,13 @@ function isBodyParserError(error: unknown): error is { type: string } {
     typeof error === 'object' && error !== null && 'type' in error && typeof error.type === 'string'
   );
 }
+
+/** Upload limits from middlewares/upload.ts. Anything else is a malformed form → generic 400. */
+const MULTER_MESSAGES: Partial<Record<MulterError['code'], string>> = {
+  LIMIT_FILE_SIZE: 'ไฟล์ใหญ่เกิน 5 MB',
+  LIMIT_FILE_COUNT: 'ส่งได้ครั้งละไม่เกิน 3 ไฟล์',
+  LIMIT_UNEXPECTED_FILE: 'ต้องส่งไฟล์ใน field ชื่อ "files"',
+};
 
 /** Maps known error types to an AppError. Returns null for unexpected errors. */
 function toAppError(error: unknown): AppError | null {
@@ -34,6 +42,10 @@ function toAppError(error: unknown): AppError | null {
       default:
         return null;
     }
+  }
+
+  if (error instanceof MulterError) {
+    return errors.validation(MULTER_MESSAGES[error.code] ?? 'ข้อมูลไฟล์ที่ส่งมาไม่ถูกต้อง');
   }
 
   if (isBodyParserError(error)) {

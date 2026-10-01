@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Paperclip,
   Pencil,
   RotateCcw,
   Search,
@@ -318,7 +319,19 @@ export function TransactionsPage() {
                       </td>
                       <td className="py-2.5 pr-4 font-medium">{transactionTitle(tx)}</td>
                       <td className="py-2.5 pr-4">{tx.wallet.name}</td>
-                      <td className="max-w-48 truncate py-2.5 pr-4 text-slate-500">{tx.note}</td>
+                      <td className="max-w-48 truncate py-2.5 pr-4 text-slate-500">
+                        {tx.attachmentCount > 0 && (
+                          <span
+                            className="mr-1.5 inline-flex items-center gap-0.5 align-middle text-xs"
+                            title={`ไฟล์แนบ ${tx.attachmentCount} ไฟล์`}
+                          >
+                            <Paperclip className="size-3.5" aria-hidden />
+                            <span className="sr-only">ไฟล์แนบ</span>
+                            {tx.attachmentCount}
+                          </span>
+                        )}
+                        {tx.note}
+                      </td>
                       <td className="py-2.5 pr-4 text-right whitespace-nowrap">
                         <Money
                           amount={tx.amount}
