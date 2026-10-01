@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # Pin the server's host key: refuse to talk to an impostor (MITM).
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: deploy/docker-compose.prod.yml,deploy/deploy.sh,deploy/backup.sh
+          source: deploy/docker-compose.prod.yml,deploy/deploy.sh,deploy/backup.sh,deploy/restore.sh,deploy/check.sh
           target: ${{ vars.DEPLOY_PATH }}
           strip_components: 1
 
