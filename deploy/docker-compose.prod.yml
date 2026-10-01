@@ -56,6 +56,8 @@ services:
       TRUST_PROXY: 2
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ORIGINS: ''
+      # The uploads volume below; backup.sh archives it with the database dump.
+      UPLOAD_DIR: /app/uploads
       CRON_ENABLED: ${CRON_ENABLED:-true}
       CRON_TZ: ${CRON_TZ:-Asia/Bangkok}
     volumes:

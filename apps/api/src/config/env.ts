@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { z } from 'zod';
 
 function isValidTimezone(timezone: string): boolean {
@@ -51,6 +52,13 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   /** bcrypt work factor. 12 in production (~250 ms/hash); tests use 4 to stay fast. */
   BCRYPT_COST: z.coerce.number().int().min(4).max(15).default(12),
+
+  /** Attachment storage root, resolved from the working directory. Docker: /app/uploads (a volume). */
+  UPLOAD_DIR: z
+    .string()
+    .min(1)
+    .default('uploads')
+    .transform((value) => path.resolve(value)),
 
   // --- Scheduled jobs ---
   /** "false" turns the in-process cron off (e.g. a second API replica, or debugging). */

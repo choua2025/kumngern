@@ -1,3 +1,4 @@
+import os from 'node:os';
 import path from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import { defineConfig } from 'vitest/config';
@@ -34,6 +35,8 @@ export default defineConfig({
       JWT_ACCESS_SECRET: 'test-secret-that-is-at-least-32-characters-long',
       // Cost 4 instead of 12: ~1 ms instead of ~250 ms per hash, same code path.
       BCRYPT_COST: '4',
+      // Attachments go to a throw-away directory, never into the repo.
+      UPLOAD_DIR: path.join(os.tmpdir(), 'income-expenses-test-uploads'),
     },
     coverage: {
       provider: 'v8',

@@ -7,6 +7,7 @@ import { config } from './config/index.js';
 import { httpLogger } from './lib/http-logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { createRateLimiter } from './middlewares/rate-limit.js';
+import { createAttachmentsRouter } from './modules/attachments/attachments.router.js';
 import { createAuthRouter } from './modules/auth/auth.router.js';
 import { createBudgetsRouter } from './modules/budgets/budgets.router.js';
 import { createCategoriesRouter } from './modules/categories/categories.router.js';
@@ -58,6 +59,7 @@ export function createApp(): Express {
   api.use('/reports', createReportsRouter());
   api.use('/recurring', createRecurringRouter());
   api.use('/tags', createTagsRouter());
+  api.use('/attachments', createAttachmentsRouter());
 
   app.use(API_PREFIX, api);
 
