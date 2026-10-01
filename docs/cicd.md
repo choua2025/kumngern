@@ -131,16 +131,25 @@ deploy ครั้งแรกที่ไม่ผ่าน health check → �
 
 แต่ละ environment ต้องมี:
 
-| ประเภท   | ชื่อ                   | staging (ตัวอย่าง)                     | คำอธิบาย                                                                      |
-| -------- | ---------------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
-| secret   | `SSH_HOST`             | `187.77.150.239`                       | IP ของ server                                                                 |
-| secret   | `SSH_PORT`             | `22`                                   |                                                                               |
-| secret   | `SSH_USER`             | `deploy`                               | user ที่อยู่ในกลุ่ม `docker` (Phase 11)                                       |
-| secret   | `SSH_PRIVATE_KEY`      | _(private key สำหรับ deploy โดยเฉพาะ)_ | สร้างใหม่ อย่าใช้ key ส่วนตัว                                                 |
-| secret   | `SSH_HOST_FINGERPRINT` | `SHA256:…`                             | `ssh-keyscan -t ed25519 <host> \| ssh-keygen -lf -` ใช้ pin host key กัน MITM |
-| variable | `APP_DOMAIN`           | `front.dev.chdev.site`                 |                                                                               |
-| variable | `API_DOMAIN`           | `api.dev.chdev.site`                   |                                                                               |
-| variable | `DEPLOY_PATH`          | `/opt/income-expenses/staging`         |                                                                               |
+| ประเภท   | ชื่อ                   | staging (ค่าจริง)                  | คำอธิบาย                                                                 |
+| -------- | ---------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+| secret   | `SSH_HOST`             | `187.77.150.239`                   | IP ของ server                                                            |
+| secret   | `SSH_PRIVATE_KEY`      | _(`~/.ssh/github_actions_deploy`)_ | key สำหรับ CI โดยเฉพาะ เข้าได้แค่ user `deploy` (ถอดออกจาก `choua` แล้ว) |
+| secret   | `SSH_HOST_FINGERPRINT` | `SHA256:I+REyv5N…`                 | **host key แบบ ECDSA** (ดูหมายเหตุด้านล่าง) ใช้ pin กัน MITM             |
+| variable | `SSH_USER`             | `deploy`                           | ไม่มี sudo, อยู่ในกลุ่ม `docker`                                         |
+| variable | `SSH_PORT`             | `22`                               |                                                                          |
+| variable | `APP_DOMAIN`           | `front.dev.chdev.site`             |                                                                          |
+| variable | `API_DOMAIN`           | `api.dev.chdev.site`               |                                                                          |
+| variable | `DEPLOY_PATH`          | `/opt/income-expenses/staging`     |                                                                          |
+
+**บทเรียนจากการตั้งค่าจริง (2026-10-01)**
+
+- **fingerprint ต้องเป็น ECDSA ไม่ใช่ ED25519** เพราะ `appleboy/scp-action` และ `ssh-action` ใช้ Go `x/crypto/ssh` ซึ่งเลือก host key แบบ ECDSA ก่อน (ต่างจาก OpenSSH)
+  ถ้าใส่ ED25519 จะได้ `host key fingerprint mismatch` ผมยืนยันด้วยการรัน `ghcr.io/appleboy/drone-scp:1.8.0` บนเครื่อง ได้ผลว่า ED25519 ไม่ผ่าน และ ECDSA ผ่าน
+  ให้ดึงค่าทั้งจากบน server และจากข้างนอก แล้วต้องได้ค่าเดียวกัน:
+  `ssh <server> ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub` และ `ssh-keyscan -t ecdsa <host> | ssh-keygen -lf -`
+- **`SSH_USER` และ `SSH_PORT` เป็น variable ไม่ใช่ secret** เพราะ GitHub จะเซ็นเซอร์ทุกที่ที่ค่าของ secret ปรากฏใน log
+  `deploy` กับ `22` จึงกลายเป็น `***` ไปทั่ว log (แม้แต่ใน commit SHA) ทั้งที่ทั้งสองค่าไม่ได้เป็นความลับ
 
 ### 4.2 เปิด deploy — Settings → Secrets and variables → Actions → Variables
 
