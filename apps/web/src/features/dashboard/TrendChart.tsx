@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { MonthTotalsDto } from '@income-expenses/shared';
+import { useTranslation } from 'react-i18next';
 import {
   Bar,
   BarChart,
@@ -12,10 +13,9 @@ import {
 } from 'recharts';
 import { useTrendReport } from '../../api/reports';
 import { useFormatMoney } from '../../components/Money';
+import { formatCompact } from '../../lib/money';
 import { Card, EmptyState, ErrorState, Skeleton } from '../../components/states';
 import { formatMonthShort } from '../../lib/date';
-
-const compact = new Intl.NumberFormat('th-TH', { notation: 'compact', maximumFractionDigits: 1 });
 
 interface Row {
   label: string;
@@ -27,13 +27,14 @@ interface Row {
 
 export function TrendChart({
   months = 6,
-  title = `รายรับ-รายจ่าย ${months} เดือน`,
+  title,
   action,
 }: {
   months?: number;
   title?: string;
   action?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const trend = useTrendReport(months);
   const format = useFormatMoney();
 
@@ -47,13 +48,13 @@ export function TrendChart({
   const hasData = rows.some((row) => row.income > 0 || row.expense > 0);
 
   return (
-    <Card title={title} action={action}>
+    <Card title={title ?? t('dashboard.trendTitle', { months })} action={action}>
       {trend.isPending ? (
         <Skeleton className="h-64" />
       ) : trend.isError ? (
         <ErrorState error={trend.error} onRetry={() => void trend.refetch()} />
       ) : !hasData ? (
-        <EmptyState title="ยังไม่มีข้อมูลย้อนหลัง" />
+        <EmptyState title={t('dashboard.noHistory')} />
       ) : (
         <div className="h-64 text-xs">
           <ResponsiveContainer width="100%" height="100%">
@@ -75,14 +76,15 @@ export function TrendChart({
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: 'var(--chart-text)' }}
-                tickFormatter={(value: number) => compact.format(value)}
+                tickFormatter={(value: number) => formatCompact(value)}
               />
               <Tooltip
                 cursor={{ fill: 'var(--chart-grid)', opacity: 0.5 }}
                 formatter={(_value, name, entry) => {
                   const source = (entry.payload as Row).source;
                   const currency = trend.data.currencyCode;
-                  return name === 'รายรับ'
+                  // Compare the dataKey, not the (translated) series name.
+                  return entry.dataKey === 'income'
                     ? [format(source.income, currency), name]
                     : [format(source.expense, currency), name];
                 }}
@@ -95,14 +97,14 @@ export function TrendChart({
               />
               <Bar
                 dataKey="income"
-                name="รายรับ"
+                name={t('common.income')}
                 fill="var(--series-1)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={28}
               />
               <Bar
                 dataKey="expense"
-                name="รายจ่าย"
+                name={t('common.expense')}
                 fill="var(--series-2)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={28}

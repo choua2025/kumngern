@@ -1,7 +1,10 @@
 /**
  * Dates are shown in the USER's timezone (from their profile), not the browser's:
  * a Bangkok user travelling in Tokyo still sees their budget months cut in Bangkok time.
+ * The LANGUAGE of month names and the calendar era follow the UI locale (intlLocale):
+ * th-TH shows the Buddhist year 2569, en-US and lo-LA show 2026.
  */
+import { intlLocale } from '../i18n';
 
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
@@ -92,18 +95,65 @@ export function fromDateTimeLocalValue(value: string, timezone: string): string 
   return new Date(wallClockAsUtc - offsetAt(firstGuess)).toISOString();
 }
 
+/*
+ * Lao: Chromium (Chrome, Edge, Android WebView) ships NO Lao Intl data and silently formats
+ * "lo-LA" as English ("October 2026"). Lao dates are therefore built from CLDR's Lao month
+ * names here, on every browser, using CLDR's patterns ("5 ຕ.ລ. 2026", "ຕຸລາ 2026").
+ */
+const LAO_MONTHS = [
+  'ມັງກອນ',
+  'ກຸມພາ',
+  'ມີນາ',
+  'ເມສາ',
+  'ພຶດສະພາ',
+  'ມິຖຸນາ',
+  'ກໍລະກົດ',
+  'ສິງຫາ',
+  'ກັນຍາ',
+  'ຕຸລາ',
+  'ພະຈິກ',
+  'ທັນວາ',
+];
+const LAO_MONTHS_SHORT = [
+  'ມ.ກ.',
+  'ກ.ພ.',
+  'ມ.ນ.',
+  'ມ.ສ.',
+  'ພ.ພ.',
+  'ມິ.ຖ.',
+  'ກ.ລ.',
+  'ສ.ຫ.',
+  'ກ.ຍ.',
+  'ຕ.ລ.',
+  'ພ.ຈ.',
+  'ທ.ວ.',
+];
+
+const isLao = (locale: string) => locale.startsWith('lo');
+
+function laoDate(p: { year: number; month: number; day: number }): string {
+  return `${p.day} ${LAO_MONTHS_SHORT[p.month - 1] ?? ''} ${p.year}`;
+}
+
 export function formatDate(iso: string, timezone: string): string {
+  const locale = intlLocale();
+  if (isLao(locale)) return laoDate(wallClockParts(new Date(iso), timezone));
   return cachedFormatter(
-    `date:${timezone}`,
-    () => new Intl.DateTimeFormat('th-TH', { timeZone: timezone, dateStyle: 'medium' }),
+    `date:${locale}:${timezone}`,
+    () => new Intl.DateTimeFormat(locale, { timeZone: timezone, dateStyle: 'medium' }),
   ).format(new Date(iso));
 }
 
 export function formatDateTime(iso: string, timezone: string): string {
+  const locale = intlLocale();
+  if (isLao(locale)) {
+    const p = wallClockParts(new Date(iso), timezone);
+    return `${laoDate(p)}, ${pad(p.hour)}:${pad(p.minute)}`;
+  }
   return cachedFormatter(
-    `datetime:${timezone}`,
+    `datetime:${locale}:${timezone}`,
     () =>
-      new Intl.DateTimeFormat('th-TH', {
+      new Intl.DateTimeFormat(locale, {
         timeZone: timezone,
         dateStyle: 'medium',
         timeStyle: 'short',
@@ -111,18 +161,38 @@ export function formatDateTime(iso: string, timezone: string): string {
   ).format(new Date(iso));
 }
 
-/** "2026-09" → "ก.ย. 2569" (short Thai month label for charts). */
+/** A calendar date with no time ("2026-10-05", e.g. a recurring run) → "5 ต.ค. 2569". */
+export function formatCalendarDate(date: string): string {
+  return formatDate(`${date}T00:00:00Z`, 'UTC');
+}
+
+function parseMonth(month: string): { year: number; month: number } {
+  const [year = 1970, monthNumber = 1] = month.split('-').map(Number);
+  return { year, month: monthNumber };
+}
+
+/** "2026-09" → "ก.ย. 69" / "Sep 26" / "ກ.ຍ. 26" (short month label for charts). */
 export function formatMonthShort(month: string): string {
+  const locale = intlLocale();
+  if (isLao(locale)) {
+    const p = parseMonth(month);
+    return `${LAO_MONTHS_SHORT[p.month - 1] ?? ''} ${String(p.year).slice(-2)}`;
+  }
   return cachedFormatter(
-    'month-short',
-    () => new Intl.DateTimeFormat('th-TH', { month: 'short', year: '2-digit', timeZone: 'UTC' }),
+    `month-short:${locale}`,
+    () => new Intl.DateTimeFormat(locale, { month: 'short', year: '2-digit', timeZone: 'UTC' }),
   ).format(new Date(`${month}-01T00:00:00Z`));
 }
 
-/** "2026-09" → "กันยายน 2569" */
+/** "2026-09" → "กันยายน 2569" / "September 2026" / "ກັນຍາ 2026" */
 export function formatMonthLong(month: string): string {
+  const locale = intlLocale();
+  if (isLao(locale)) {
+    const p = parseMonth(month);
+    return `${LAO_MONTHS[p.month - 1] ?? ''} ${p.year}`;
+  }
   return cachedFormatter(
-    'month-long',
-    () => new Intl.DateTimeFormat('th-TH', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    `month-long:${locale}`,
+    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
   ).format(new Date(`${month}-01T00:00:00Z`));
 }

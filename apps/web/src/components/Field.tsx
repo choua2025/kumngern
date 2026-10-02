@@ -5,6 +5,7 @@ import {
   type SelectHTMLAttributes,
   useId,
 } from 'react';
+import { useMessage } from '../i18n/use-message';
 import { cn } from '../lib/cn';
 
 const controlClass =
@@ -22,6 +23,8 @@ interface FieldShellProps {
 
 /** Label + control + error text, wired together with aria attributes. */
 function FieldShell({ id, label, error, hint, children }: FieldShellProps) {
+  // Errors may be translation keys (forms) or text (API) — see use-message.ts.
+  const message = useMessage();
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -30,7 +33,7 @@ function FieldShell({ id, label, error, hint, children }: FieldShellProps) {
       {children}
       {error ? (
         <p id={`${id}-error`} role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {error}
+          {message(error)}
         </p>
       ) : hint ? (
         <p id={`${id}-hint`} className="text-sm text-slate-500 dark:text-slate-400">

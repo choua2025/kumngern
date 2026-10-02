@@ -1,6 +1,7 @@
 import type { WalletDto } from '@income-expenses/shared';
 import { Archive, ArchiveRestore, ArrowLeftRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useDeleteWallet, useUpdateWallet, useWallets } from '../../api/wallets';
@@ -12,9 +13,10 @@ import { useToast } from '../../components/toast';
 import { cn } from '../../lib/cn';
 import { totalsByCurrency } from '../../lib/money';
 import { TransactionFormModal } from '../transactions/TransactionFormModal';
-import { WALLET_TYPE_LABEL, WalletFormModal } from './WalletFormModal';
+import { WalletFormModal } from './WalletFormModal';
 
 export function WalletsPage() {
+  const { t } = useTranslation();
   const [showArchived, setShowArchived] = useState(false);
   const wallets = useWallets(showArchived);
   const updateWallet = useUpdateWallet();
@@ -28,7 +30,9 @@ export function WalletsPage() {
     try {
       await updateWallet.mutateAsync({ id: wallet.id, patch: { isArchived } });
       toast.show(
-        isArchived ? `เก็บ "${wallet.name}" เข้าคลังแล้ว` : `นำ "${wallet.name}" กลับมาใช้แล้ว`,
+        isArchived
+          ? t('wallets.archived', { name: wallet.name })
+          : t('wallets.unarchived', { name: wallet.name }),
       );
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
@@ -39,7 +43,7 @@ export function WalletsPage() {
     if (!deleting) return;
     try {
       await deleteWallet.mutateAsync(deleting.id);
-      toast.show(`ลบ "${deleting.name}" แล้ว`);
+      toast.show(t('wallets.deleted', { name: deleting.name }));
     } catch (error) {
       // 409: the wallet has history → the API message suggests archiving instead.
       toast.show(errorMessage(error), { tone: 'error' });
@@ -53,17 +57,17 @@ export function WalletsPage() {
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">กระเป๋าเงิน</h1>
+        <h1 className="text-2xl font-bold">{t('wallets.title')}</h1>
         <div className="flex gap-2">
           <Button
             variant="secondary"
             onClick={() => setTransferOpen(true)}
             disabled={active.length < 2}
           >
-            <ArrowLeftRight className="size-4" aria-hidden /> โอนเงิน
+            <ArrowLeftRight className="size-4" aria-hidden /> {t('transactions.transferMoney')}
           </Button>
           <Button onClick={() => setEditing('new')}>
-            <Plus className="size-4" aria-hidden /> เพิ่มกระเป๋า
+            <Plus className="size-4" aria-hidden /> {t('wallets.add')}
           </Button>
         </div>
       </header>
@@ -76,9 +80,9 @@ export function WalletsPage() {
         <ErrorState error={wallets.error} onRetry={() => void wallets.refetch()} />
       ) : wallets.data.length === 0 ? (
         <EmptyState
-          title="ยังไม่มีกระเป๋าเงิน"
-          description="เริ่มจากเงินสดในกระเป๋า แล้วเพิ่มบัญชีธนาคารหรือ e-wallet ทีหลัง"
-          action={<Button onClick={() => setEditing('new')}>เพิ่มกระเป๋าใบแรก</Button>}
+          title={t('wallets.empty')}
+          description={t('wallets.emptyHint')}
+          action={<Button onClick={() => setEditing('new')}>{t('wallets.addFirst')}</Button>}
         />
       ) : (
         <>
@@ -87,7 +91,9 @@ export function WalletsPage() {
               active.map((w) => ({ currencyCode: w.currencyCode, amount: w.balance })),
             ).map((total) => (
               <Card key={total.currencyCode}>
-                <p className="text-sm text-slate-500">ยอดรวม {total.currencyCode}</p>
+                <p className="text-sm text-slate-500">
+                  {t('wallets.totalIn', { currency: total.currencyCode })}
+                </p>
                 <p className="mt-1 text-2xl font-bold">
                   <Money amount={total.total} currency={total.currencyCode} tone="signed" />
                 </p>
@@ -110,17 +116,17 @@ export function WalletsPage() {
                       {wallet.name}
                       {wallet.isArchived && (
                         <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs dark:bg-slate-700">
-                          เก็บเข้าคลัง
+                          {t('wallets.archivedBadge')}
                         </span>
                       )}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {WALLET_TYPE_LABEL[wallet.type]} · {wallet.currencyCode} ·{' '}
+                      {t(`walletTypes.${wallet.type}`)} · {wallet.currencyCode} ·{' '}
                       <Link
                         to={`/transactions?walletId=${wallet.id}`}
                         className="text-blue-600 hover:underline dark:text-blue-400"
                       >
-                        ดูรายการ
+                        {t('wallets.viewTransactions')}
                       </Link>
                     </p>
                   </div>
@@ -135,7 +141,7 @@ export function WalletsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setEditing(wallet)}
-                      aria-label={`แก้ไข ${wallet.name}`}
+                      aria-label={t('common.editItem', { name: wallet.name })}
                     >
                       <Pencil className="size-4" aria-hidden />
                     </Button>
@@ -145,14 +151,10 @@ export function WalletsPage() {
                       onClick={() => void setArchived(wallet, !wallet.isArchived)}
                       aria-label={
                         wallet.isArchived
-                          ? `นำ ${wallet.name} กลับมาใช้`
-                          : `เก็บ ${wallet.name} เข้าคลัง`
+                          ? t('wallets.unarchiveItem', { name: wallet.name })
+                          : t('wallets.archiveItem', { name: wallet.name })
                       }
-                      title={
-                        wallet.isArchived
-                          ? 'นำกลับมาใช้'
-                          : 'เก็บเข้าคลัง (ซ่อนจากรายการ แต่ประวัติยังอยู่)'
-                      }
+                      title={wallet.isArchived ? t('wallets.unarchive') : t('wallets.archiveHint')}
                     >
                       {wallet.isArchived ? (
                         <ArchiveRestore className="size-4" aria-hidden />
@@ -164,7 +166,7 @@ export function WalletsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeleting(wallet)}
-                      aria-label={`ลบ ${wallet.name}`}
+                      aria-label={t('common.deleteItem', { name: wallet.name })}
                     >
                       <Trash2 className="size-4" aria-hidden />
                     </Button>
@@ -179,7 +181,7 @@ export function WalletsPage() {
                 onChange={(e) => setShowArchived(e.target.checked)}
                 className="size-4 rounded"
               />
-              แสดงกระเป๋าที่เก็บเข้าคลัง
+              {t('wallets.showArchived')}
             </label>
           </Card>
         </>
@@ -193,8 +195,8 @@ export function WalletsPage() {
       />
       <ConfirmDialog
         open={deleting !== null}
-        title="ลบกระเป๋า"
-        message={`ลบ "${deleting?.name ?? ''}" ถาวร? ลบได้เฉพาะกระเป๋าที่ยังไม่มีรายการ ถ้ามีประวัติแล้วให้ใช้ "เก็บเข้าคลัง" แทน`}
+        title={t('wallets.deleteTitle')}
+        message={t('wallets.deleteMessage', { name: deleting?.name ?? '' })}
         loading={deleteWallet.isPending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}

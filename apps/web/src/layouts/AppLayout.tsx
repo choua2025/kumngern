@@ -13,6 +13,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router';
 import { useAuth } from '../features/auth/auth-context';
 import { QuickAddModal } from '../features/quick-add/QuickAddModal';
@@ -21,17 +22,18 @@ import { cn } from '../lib/cn';
 import { currentTheme, setTheme, type Theme } from '../lib/theme';
 
 const NAV = [
-  { to: '/', label: 'แดชบอร์ด', icon: LayoutDashboard, mobile: true },
-  { to: '/transactions', label: 'รายการ', icon: ArrowLeftRight, mobile: true },
-  { to: '/wallets', label: 'กระเป๋า', icon: Wallet, mobile: true },
-  { to: '/budgets', label: 'งบประมาณ', icon: PiggyBank, mobile: true },
-  { to: '/recurring', label: 'รายการประจำ', icon: Repeat, mobile: false },
-  { to: '/reports', label: 'รายงาน', icon: ChartPie, mobile: false },
-  { to: '/categories', label: 'หมวดหมู่', icon: FolderTree, mobile: false },
-  { to: '/settings', label: 'ตั้งค่า', icon: Settings, mobile: true },
+  { to: '/', label: 'nav.dashboard', icon: LayoutDashboard, mobile: true },
+  { to: '/transactions', label: 'nav.transactions', icon: ArrowLeftRight, mobile: true },
+  { to: '/wallets', label: 'nav.wallets', icon: Wallet, mobile: true },
+  { to: '/budgets', label: 'nav.budgets', icon: PiggyBank, mobile: true },
+  { to: '/recurring', label: 'nav.recurring', icon: Repeat, mobile: false },
+  { to: '/reports', label: 'nav.reports', icon: ChartPie, mobile: false },
+  { to: '/categories', label: 'nav.categories', icon: FolderTree, mobile: false },
+  { to: '/settings', label: 'nav.settings', icon: Settings, mobile: true },
 ] as const;
 
 function ThemeToggle() {
+  const { t } = useTranslation();
   const [theme, setThemeState] = useState<Theme>(currentTheme);
   const next: Theme = theme === 'dark' ? 'light' : 'dark';
   return (
@@ -42,7 +44,7 @@ function ThemeToggle() {
         setThemeState(next);
       }}
       className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-      aria-label={theme === 'dark' ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด'}
+      aria-label={theme === 'dark' ? t('nav.toLight') : t('nav.toDark')}
     >
       {theme === 'dark' ? (
         <Sun className="size-5" aria-hidden />
@@ -54,6 +56,7 @@ function ThemeToggle() {
 }
 
 export function AppLayout() {
+  const { t } = useTranslation();
   const { state, logout } = useAuth();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   useHotkey('n', () => setQuickAddOpen(true));
@@ -68,7 +71,7 @@ export function AppLayout() {
           </span>
           Income & Expenses
         </div>
-        <nav aria-label="เมนูหลัก" className="flex-1 space-y-1">
+        <nav aria-label={t('nav.mainMenu')} className="flex-1 space-y-1">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -84,7 +87,7 @@ export function AppLayout() {
               }
             >
               <Icon className="size-5" aria-hidden />
-              {label}
+              {t(label)}
             </NavLink>
           ))}
         </nav>
@@ -97,7 +100,7 @@ export function AppLayout() {
               onClick={() => void logout()}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              <LogOut className="size-4" aria-hidden /> ออกจากระบบ
+              <LogOut className="size-4" aria-hidden /> {t('nav.logout')}
             </button>
           </div>
         </div>
@@ -113,7 +116,7 @@ export function AppLayout() {
               type="button"
               onClick={() => void logout()}
               className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-              aria-label="ออกจากระบบ"
+              aria-label={t('nav.logout')}
             >
               <LogOut className="size-5" aria-hidden />
             </button>
@@ -130,15 +133,15 @@ export function AppLayout() {
         type="button"
         onClick={() => setQuickAddOpen(true)}
         className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 lg:right-8 lg:bottom-8"
-        aria-label="เพิ่มรายการ (คีย์ลัด N)"
-        title="เพิ่มรายการ (N)"
+        aria-label={t('nav.addTransaction')}
+        title={t('nav.addTransactionTitle')}
       >
         <Plus className="size-7" aria-hidden />
       </button>
 
       {/* Mobile bottom navigation */}
       <nav
-        aria-label="เมนูหลัก"
+        aria-label={t('nav.mainMenu')}
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden dark:border-slate-800 dark:bg-slate-900"
       >
         {NAV.filter((item) => item.mobile).map(({ to, label, icon: Icon }) => (
@@ -154,7 +157,7 @@ export function AppLayout() {
             }
           >
             <Icon className="size-5" aria-hidden />
-            {label}
+            {t(label)}
           </NavLink>
         ))}
       </nav>

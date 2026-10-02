@@ -7,6 +7,7 @@ import {
 } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { useCurrencies } from '../../api/auth';
 import { useCreateWallet, useUpdateWallet } from '../../api/wallets';
 import { Button } from '../../components/Button';
@@ -16,15 +17,8 @@ import { useToast } from '../../components/toast';
 import { applyApiErrors } from '../../lib/form-errors';
 import { useCurrentUser } from '../auth/auth-context';
 
-export const WALLET_TYPE_LABEL: Record<(typeof WALLET_TYPES)[number], string> = {
-  cash: 'เงินสด',
-  bank: 'บัญชีธนาคาร',
-  ewallet: 'e-wallet',
-  credit_card: 'บัตรเครดิต',
-  saving: 'เงินออม',
-};
-
 function WalletForm({ wallet, onDone }: { wallet: WalletDto | null; onDone: () => void }) {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   const currencies = useCurrencies();
   const createWallet = useCreateWallet();
@@ -56,10 +50,10 @@ function WalletForm({ wallet, onDone }: { wallet: WalletDto | null; onDone: () =
           id: wallet.id,
           patch: { name: values.name, type: values.type },
         });
-        toast.show('บันทึกกระเป๋าแล้ว');
+        toast.show(t('wallets.saved'));
       } else {
         await createWallet.mutateAsync(values);
-        toast.show('สร้างกระเป๋าแล้ว');
+        toast.show(t('wallets.created'));
       }
       onDone();
     } catch (error) {
@@ -80,22 +74,22 @@ function WalletForm({ wallet, onDone }: { wallet: WalletDto | null; onDone: () =
         </p>
       )}
       <InputField
-        label="ชื่อกระเป๋า"
+        label={t('wallets.name')}
         autoFocus
         error={errors.name?.message}
         {...register('name')}
       />
-      <SelectField label="ประเภท" error={errors.type?.message} {...register('type')}>
+      <SelectField label={t('common.type')} error={errors.type?.message} {...register('type')}>
         {WALLET_TYPES.map((type) => (
           <option key={type} value={type}>
-            {WALLET_TYPE_LABEL[type]}
+            {t(`walletTypes.${type}`)}
           </option>
         ))}
       </SelectField>
       {!wallet && (
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField
-            label="สกุลเงิน"
+            label={t('wallets.currency')}
             error={errors.currencyCode?.message}
             {...register('currencyCode')}
           >
@@ -106,16 +100,16 @@ function WalletForm({ wallet, onDone }: { wallet: WalletDto | null; onDone: () =
             ))}
           </SelectField>
           <InputField
-            label="ยอดตั้งต้น"
+            label={t('wallets.initialBalance')}
             inputMode="decimal"
-            hint="ติดลบได้ เช่น ยอดค้างบัตรเครดิต"
+            hint={t('wallets.initialBalanceHint')}
             error={errors.initialBalance?.message}
             {...register('initialBalance', { setValueAs: (v: string) => v.replace(/[,\s]/g, '') })}
           />
         </div>
       )}
       <Button type="submit" loading={isSubmitting} className="w-full">
-        {wallet ? 'บันทึก' : 'สร้างกระเป๋า'}
+        {wallet ? t('common.save') : t('wallets.create')}
       </Button>
     </form>
   );
@@ -130,8 +124,9 @@ export function WalletFormModal({
   wallet: WalletDto | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
-    <Modal open={open} onClose={onClose} title={wallet ? 'แก้ไขกระเป๋า' : 'เพิ่มกระเป๋า'}>
+    <Modal open={open} onClose={onClose} title={wallet ? t('wallets.editTitle') : t('wallets.add')}>
       <WalletForm wallet={wallet} onDone={onClose} />
     </Modal>
   );

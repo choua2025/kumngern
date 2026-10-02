@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useBudgets } from '../../api/budgets';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
@@ -5,6 +6,7 @@ import { BudgetProgress } from '../budgets/BudgetProgress';
 
 /** Budgets at or past their alert level, most used first. */
 export function BudgetWatchlist({ month }: { month: string }) {
+  const { t } = useTranslation();
   const budgets = useBudgets(month);
   const atRisk = (budgets.data ?? [])
     .filter((budget) => budget.status !== 'ok')
@@ -13,10 +15,10 @@ export function BudgetWatchlist({ month }: { month: string }) {
 
   return (
     <Card
-      title="งบที่ใกล้เกิน"
+      title={t('dashboard.budgetWatch')}
       action={
         <Link to="/budgets" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-          ดูทั้งหมด
+          {t('common.viewAll')}
         </Link>
       }
     >
@@ -25,12 +27,9 @@ export function BudgetWatchlist({ month }: { month: string }) {
       ) : budgets.isError ? (
         <ErrorState error={budgets.error} onRetry={() => void budgets.refetch()} />
       ) : budgets.data.length === 0 ? (
-        <EmptyState
-          title="ยังไม่ได้ตั้งงบเดือนนี้"
-          description="ตั้งงบรายหมวดเพื่อให้ระบบเตือนก่อนใช้เกิน"
-        />
+        <EmptyState title={t('dashboard.noBudget')} description={t('dashboard.noBudgetHint')} />
       ) : atRisk.length === 0 ? (
-        <EmptyState title="ทุกหมวดยังอยู่ในงบ 🎉" />
+        <EmptyState title={t('dashboard.allWithinBudget')} />
       ) : (
         <div className="space-y-5">
           {atRisk.map((budget) => (

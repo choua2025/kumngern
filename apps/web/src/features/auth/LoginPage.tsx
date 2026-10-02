@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type LoginInput, loginSchema } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Button } from '../../components/Button';
 import { InputField } from '../../components/Field';
@@ -10,6 +11,7 @@ import { AuthLayout } from '../../layouts/AuthLayout';
 import { useAuth } from './auth-context';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export function LoginPage() {
   });
 
   return (
-    <AuthLayout title="เข้าสู่ระบบ">
+    <AuthLayout title={t('auth.login')}>
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="space-y-4">
         {formError && (
           <p
@@ -46,7 +48,7 @@ export function LoginPage() {
           </p>
         )}
         <InputField
-          label="อีเมล"
+          label={t('auth.email')}
           type="email"
           autoComplete="email"
           autoFocus
@@ -54,23 +56,23 @@ export function LoginPage() {
           {...register('email')}
         />
         <InputField
-          label="รหัสผ่าน"
+          label={t('auth.password')}
           type="password"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register('password')}
         />
         <Button type="submit" loading={isSubmitting} className="w-full">
-          เข้าสู่ระบบ
+          {t('auth.login')}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
-        ยังไม่มีบัญชี?{' '}
+        {t('auth.noAccount')}{' '}
         <Link
           to="/register"
           className="font-medium text-blue-600 hover:underline dark:text-blue-400"
         >
-          สมัครสมาชิก
+          {t('auth.register')}
         </Link>
       </p>
     </AuthLayout>

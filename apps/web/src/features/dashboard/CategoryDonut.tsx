@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import type { ByCategoryReportDto } from '@income-expenses/shared';
 import Big from 'big.js';
+import { useTranslation } from 'react-i18next';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { i18n } from '../../i18n';
 import { useByCategoryReport } from '../../api/reports';
 import { useFormatMoney } from '../../components/Money';
 import { Card, EmptyState, ErrorState, Skeleton } from '../../components/states';
@@ -38,7 +40,7 @@ export function toSlices(report: ByCategoryReportDto): Slice[] {
   if (rest.length > 0) {
     const total = rest.reduce((sum, item) => sum.plus(item.total), new Big(0));
     slices.push({
-      name: 'อื่นๆ',
+      name: i18n.t('common.other'),
       total: total.toFixed(2),
       percent: Number(rest.reduce((sum, item) => sum.plus(item.percent), new Big(0)).toFixed(1)),
       color: 'var(--series-other)',
@@ -58,6 +60,7 @@ interface CategoryDonutProps {
 }
 
 export function CategoryDonut({ from, to, type = 'expense', title, action }: CategoryDonutProps) {
+  const { t } = useTranslation();
   const report = useByCategoryReport(from, to, type);
   const format = useFormatMoney();
 
@@ -68,7 +71,11 @@ export function CategoryDonut({ from, to, type = 'expense', title, action }: Cat
       ) : report.isError ? (
         <ErrorState error={report.error} onRetry={() => void report.refetch()} />
       ) : report.data.items.length === 0 ? (
-        <EmptyState title={type === 'expense' ? 'ไม่มีรายจ่ายในช่วงนี้' : 'ไม่มีรายรับในช่วงนี้'} />
+        <EmptyState
+          title={
+            type === 'expense' ? t('dashboard.noExpenseInRange') : t('dashboard.noIncomeInRange')
+          }
+        />
       ) : (
         <div className="flex flex-col items-center gap-4 sm:flex-row">
           <div className="relative size-44 shrink-0">
@@ -102,7 +109,7 @@ export function CategoryDonut({ from, to, type = 'expense', title, action }: Cat
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-xs text-slate-500">รวม</span>
+              <span className="text-xs text-slate-500">{t('common.total')}</span>
               <span className="text-sm font-bold tabular-nums">
                 {format(report.data.total, report.data.currencyCode)}
               </span>

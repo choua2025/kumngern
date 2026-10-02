@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type RegisterInput, registerSchema } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useCurrencies } from '../../api/auth';
 import { Button } from '../../components/Button';
@@ -11,6 +12,7 @@ import { AuthLayout } from '../../layouts/AuthLayout';
 import { useAuth } from './auth-context';
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const { register: registerAccount } = useAuth();
   const currencies = useCurrencies();
   const [formError, setFormError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function RegisterPage() {
   });
 
   return (
-    <AuthLayout title="สมัครสมาชิก">
+    <AuthLayout title={t('auth.register')}>
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="space-y-4">
         {formError && (
           <p
@@ -49,29 +51,29 @@ export function RegisterPage() {
           </p>
         )}
         <InputField
-          label="ชื่อที่แสดง"
+          label={t('auth.displayName')}
           autoComplete="name"
           autoFocus
           error={errors.displayName?.message}
           {...register('displayName')}
         />
         <InputField
-          label="อีเมล"
+          label={t('auth.email')}
           type="email"
           autoComplete="email"
           error={errors.email?.message}
           {...register('email')}
         />
         <InputField
-          label="รหัสผ่าน"
+          label={t('auth.password')}
           type="password"
           autoComplete="new-password"
-          hint="อย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข"
+          hint={t('auth.passwordHint')}
           error={errors.password?.message}
           {...register('password')}
         />
         <SelectField
-          label="สกุลเงินหลัก"
+          label={t('auth.defaultCurrency')}
           error={errors.defaultCurrency?.message}
           {...register('defaultCurrency')}
         >
@@ -84,13 +86,13 @@ export function RegisterPage() {
           )}
         </SelectField>
         <Button type="submit" loading={isSubmitting} className="w-full">
-          สร้างบัญชี
+          {t('auth.createAccount')}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
-        มีบัญชีแล้ว?{' '}
+        {t('auth.haveAccount')}{' '}
         <Link to="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
-          เข้าสู่ระบบ
+          {t('auth.login')}
         </Link>
       </p>
     </AuthLayout>

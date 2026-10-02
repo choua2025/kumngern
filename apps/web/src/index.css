@@ -3,8 +3,22 @@
 /* Class-based dark mode: <html class="dark"> (set before paint in index.html). */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * System fonts only (the CSP allows font-src 'self'; nothing is downloaded from a CDN).
+ * Each script picks the first family in the list that has its glyphs:
+ *   Thai: Noto Sans Thai / Sarabun · Lao: Noto Sans Lao / Phetsarath OT (common in Laos) /
+ *   Leelawadee UI (Windows) · Latin: the system UI font.
+ */
 @theme {
-  --font-sans: 'Noto Sans Thai', 'Sarabun', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    'Noto Sans Thai', 'Sarabun', 'Noto Sans Lao', 'Phetsarath OT', 'Leelawadee UI', ui-sans-serif,
+    system-ui, sans-serif;
+}
+
+/* Lao and Thai stack vowels and tone marks above and below the line: give them room. */
+:lang(lo),
+:lang(th) {
+  line-height: 1.6;
 }
 
 /*

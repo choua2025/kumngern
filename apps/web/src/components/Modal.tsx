@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface ModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface ModalProps {
  * Bottom sheet on phones, centered card on larger screens.
  */
 export function Modal({ open, onClose, title, children }: ModalProps) {
+  const { t } = useTranslation();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -72,7 +74,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
             data-modal-close
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="ปิด"
+            aria-label={t('common.close')}
           >
             <X className="size-5" aria-hidden />
           </button>

@@ -7,12 +7,14 @@ import {
 import { Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useCurrencies } from '../../api/auth';
 import { useChangePassword, useUpdateProfile } from '../../api/users';
 import { Button } from '../../components/Button';
 import { InputField, SelectField } from '../../components/Field';
 import { Card, ErrorState, LoadingRows } from '../../components/states';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { useToast } from '../../components/toast';
 import { applyApiErrors } from '../../lib/form-errors';
 import { currentTheme, setTheme, type Theme } from '../../lib/theme';
@@ -34,6 +36,7 @@ function timezoneOptions(current: string): string[] {
 }
 
 function ProfileForm() {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   const { setUser } = useAuth();
   const currencies = useCurrencies();
@@ -62,7 +65,7 @@ function ProfileForm() {
       const updated = await updateProfile.mutateAsync(values);
       setUser(updated);
       reset(values);
-      toast.show('บันทึกโปรไฟล์แล้ว');
+      toast.show(t('settings.profileSaved'));
     } catch (error) {
       setFormError(applyApiErrors(error, setError, ['displayName', 'defaultCurrency', 'timezone']));
     }
@@ -82,15 +85,15 @@ function ProfileForm() {
           {formError}
         </p>
       )}
-      <InputField label="อีเมล" value={user.email} disabled readOnly />
+      <InputField label={t('auth.email')} value={user.email} disabled readOnly />
       <InputField
-        label="ชื่อที่แสดง"
+        label={t('auth.displayName')}
         error={errors.displayName?.message}
         {...register('displayName')}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <SelectField
-          label="สกุลเงินหลัก"
+          label={t('auth.defaultCurrency')}
           error={errors.defaultCurrency?.message}
           {...register('defaultCurrency')}
         >
@@ -108,11 +111,9 @@ function ProfileForm() {
           ))}
         </SelectField>
       </div>
-      <p className="text-sm text-slate-500">
-        สกุลเงินหลักใช้กับงบประมาณและรายงาน (นับเฉพาะกระเป๋าสกุลนี้) · timezone ใช้ตัดวันและเดือน
-      </p>
+      <p className="text-sm text-slate-500">{t('settings.profileHint')}</p>
       <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
-        บันทึกโปรไฟล์
+        {t('settings.saveProfile')}
       </Button>
     </form>
   );
@@ -121,22 +122,23 @@ function ProfileForm() {
 /** Client-only "confirm" field on top of the SAME new-password rules the API enforces. */
 const passwordFormSchema = z
   .object({
-    currentPassword: z.string().min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
+    currentPassword: z.string().min(1, 'validation.enterCurrentPassword'),
     newPassword: passwordSchema,
     confirmPassword: z.string(),
   })
   .refine((v) => v.newPassword === v.confirmPassword, {
-    message: 'รหัสผ่านยืนยันไม่ตรงกัน',
+    message: 'validation.passwordMismatch',
     path: ['confirmPassword'],
   })
   .refine((v) => v.currentPassword !== v.newPassword, {
-    message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
+    message: 'validation.samePassword',
     path: ['newPassword'],
   });
 
 type PasswordForm = z.input<typeof passwordFormSchema>;
 
 function PasswordFormCard() {
+  const { t } = useTranslation();
   const changePassword = useChangePassword();
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
@@ -156,7 +158,7 @@ function PasswordFormCard() {
     try {
       await changePassword.mutateAsync({ currentPassword, newPassword });
       reset();
-      toast.show('เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นทั้งหมดถูกออกจากระบบ');
+      toast.show(t('settings.passwordChanged'));
     } catch (error) {
       // A wrong current password is a 400 with details[0].path = "currentPassword".
       setFormError(applyApiErrors(error, setError, ['currentPassword', 'newPassword']));
@@ -174,35 +176,36 @@ function PasswordFormCard() {
         </p>
       )}
       <InputField
-        label="รหัสผ่านปัจจุบัน"
+        label={t('settings.currentPassword')}
         type="password"
         autoComplete="current-password"
         error={errors.currentPassword?.message}
         {...register('currentPassword')}
       />
       <InputField
-        label="รหัสผ่านใหม่"
+        label={t('settings.newPassword')}
         type="password"
         autoComplete="new-password"
-        hint="อย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข"
+        hint={t('auth.passwordHint')}
         error={errors.newPassword?.message}
         {...register('newPassword')}
       />
       <InputField
-        label="ยืนยันรหัสผ่านใหม่"
+        label={t('settings.confirmPassword')}
         type="password"
         autoComplete="new-password"
         error={errors.confirmPassword?.message}
         {...register('confirmPassword')}
       />
       <Button type="submit" loading={isSubmitting}>
-        เปลี่ยนรหัสผ่าน
+        {t('settings.changePassword')}
       </Button>
     </form>
   );
 }
 
 function ThemeSetting() {
+  const { t } = useTranslation();
   const [theme, setThemeState] = useState<Theme>(currentTheme);
   const choose = (value: Theme) => {
     setTheme(value);
@@ -211,13 +214,13 @@ function ThemeSetting() {
   return (
     <div
       role="radiogroup"
-      aria-label="ธีม"
+      aria-label={t('settings.theme')}
       className="inline-grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
     >
       {(
         [
-          ['light', 'สว่าง', Sun],
-          ['dark', 'มืด', Moon],
+          ['light', 'settings.light', Sun],
+          ['dark', 'settings.dark', Moon],
         ] as const
       ).map(([value, label, Icon]) => (
         <button
@@ -228,7 +231,7 @@ function ThemeSetting() {
           onClick={() => choose(value)}
           className={`flex items-center justify-center gap-2 rounded-lg px-5 py-1.5 text-sm font-medium ${theme === value ? 'bg-white shadow-sm dark:bg-slate-950' : 'text-slate-600 dark:text-slate-400'}`}
         >
-          <Icon className="size-4" aria-hidden /> {label}
+          <Icon className="size-4" aria-hidden /> {t(label)}
         </button>
       ))}
     </div>
@@ -236,16 +239,20 @@ function ThemeSetting() {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">ตั้งค่า</h1>
-      <Card title="โปรไฟล์">
+      <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+      <Card title={t('settings.profile')}>
         <ProfileForm />
       </Card>
-      <Card title="เปลี่ยนรหัสผ่าน">
+      <Card title={t('settings.changePassword')}>
         <PasswordFormCard />
       </Card>
-      <Card title="ธีม">
+      <Card title={t('language.label')}>
+        <LanguageSwitcher />
+      </Card>
+      <Card title={t('settings.theme')}>
         <ThemeSetting />
       </Card>
     </div>

@@ -1,5 +1,6 @@
 import type { ApiErrorBody, ApiErrorDetail } from '@income-expenses/shared';
 import { isAxiosError } from 'axios';
+import { i18n } from '../i18n';
 
 /** Every failed API call surfaces as this one error type. */
 export class ApiError extends Error {
@@ -45,17 +46,17 @@ export function toApiError(error: unknown): ApiError {
     if (!error.response) {
       return new ApiError({
         code: 'NETWORK_ERROR',
-        message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ต',
+        message: i18n.t('errors.network'),
         status: 0,
       });
     }
     return new ApiError({
       code: 'INTERNAL_ERROR',
-      message: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
+      message: i18n.t('errors.generic'),
       status: error.response.status,
     });
   }
-  return new ApiError({ code: 'UNKNOWN', message: 'เกิดข้อผิดพลาดที่ไม่คาดคิด', status: 0 });
+  return new ApiError({ code: 'UNKNOWN', message: i18n.t('errors.unexpected'), status: 0 });
 }
 
 export function errorMessage(error: unknown): string {
