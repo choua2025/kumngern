@@ -1,5 +1,5 @@
 import type { CurrencyDto } from '@income-expenses/shared';
-import { errors } from '../../lib/errors.js';
+import { detail, errors } from '../../lib/errors.js';
 import { type CurrenciesRepository, currenciesRepository } from './currencies.repository.js';
 
 export function createCurrenciesService(currencies: CurrenciesRepository) {
@@ -12,7 +12,7 @@ export function createCurrenciesService(currencies: CurrenciesRepository) {
     /** Throws a field-level VALIDATION_ERROR so forms can show it next to the input. */
     async assertExists(code: string, field = 'defaultCurrency'): Promise<void> {
       if (!(await currencies.exists(code))) {
-        throw errors.validation(undefined, [{ path: field, message: 'ไม่รองรับสกุลเงินนี้' }]);
+        throw errors.validation(undefined, [detail(field, 'validation.currencyUnsupported')]);
       }
     },
   };

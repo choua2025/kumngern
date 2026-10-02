@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import { CATEGORY_TYPES, RECURRING_FREQUENCIES } from '../constants.js';
 import { idSchema, localDateSchema, optionalText, positiveMoneySchema } from './primitives.js';
 
@@ -6,12 +7,12 @@ import { idSchema, localDateSchema, optionalText, positiveMoneySchema } from './
 export const RECURRING_MAX_MONTH_DAY = 28;
 
 const recurringFields = {
-  type: z.enum(CATEGORY_TYPES, { error: 'ประเภทต้องเป็นรายรับหรือรายจ่าย' }),
+  type: z.enum(CATEGORY_TYPES, { error: msg('validation.typeIncomeOrExpense') }),
   walletId: idSchema,
   categoryId: idSchema,
   amount: positiveMoneySchema,
   note: optionalText(255),
-  frequency: z.enum(RECURRING_FREQUENCIES, { error: 'ความถี่ไม่ถูกต้อง' }),
+  frequency: z.enum(RECURRING_FREQUENCIES, { error: msg('validation.frequencyInvalid') }),
   /** First (or next) date the job creates a transaction — a date in the user's timezone. */
   nextRunDate: localDateSchema,
   /** Inclusive; null = no end. */
@@ -33,7 +34,7 @@ export function recurringRuleIssues(
 ): { path: string; message: string }[] {
   const issues: { path: string; message: string }[] = [];
   if (value.endDate && value.endDate < value.nextRunDate) {
-    issues.push({ path: 'endDate', message: 'วันสิ้นสุดต้องไม่ก่อนวันที่เริ่ม' });
+    issues.push({ path: 'endDate', message: msg('validation.endBeforeStart') });
   }
   const day = Number(value.nextRunDate.slice(8, 10));
   if (
@@ -42,7 +43,7 @@ export function recurringRuleIssues(
   ) {
     issues.push({
       path: 'nextRunDate',
-      message: `รายการรายเดือน/รายปีต้องเริ่มวันที่ 1-${RECURRING_MAX_MONTH_DAY} (เดือนที่สั้นกว่าจะไม่มีวันนั้น)`,
+      message: msg('validation.monthDayMax', { max: RECURRING_MAX_MONTH_DAY }),
     });
   }
   return issues;
@@ -66,10 +67,10 @@ export const updateRecurringSchema = z
     frequency: recurringFields.frequency.optional(),
     nextRunDate: localDateSchema.optional(),
     endDate: localDateSchema.nullable().optional(),
-    isActive: z.boolean({ error: 'isActive ต้องเป็น true/false' }).optional(),
+    isActive: z.boolean({ error: msg('validation.isActiveInvalid') }).optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateRecurringInput = z.input<typeof updateRecurringSchema>;
 export type UpdateRecurringData = z.output<typeof updateRecurringSchema>;

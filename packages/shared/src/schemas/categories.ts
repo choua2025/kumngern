@@ -1,16 +1,17 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import { CATEGORY_TYPES } from '../constants.js';
 import { colorSchema, idSchema } from './primitives.js';
 
 const categoryNameSchema = z
-  .string({ error: 'กรุณากรอกชื่อหมวด' })
+  .string({ error: msg('validation.categoryNameRequired') })
   .trim()
-  .min(1, 'กรุณากรอกชื่อหมวด')
-  .max(100, 'ชื่อยาวเกินไป (สูงสุด 100 ตัวอักษร)');
+  .min(1, msg('validation.categoryNameRequired'))
+  .max(100, msg('validation.nameTooLong', { max: 100 }));
 
-const categoryTypeSchema = z.enum(CATEGORY_TYPES, { error: 'ประเภทหมวดไม่ถูกต้อง' });
+const categoryTypeSchema = z.enum(CATEGORY_TYPES, { error: msg('validation.categoryTypeInvalid') });
 
-const iconSchema = z.string().trim().min(1).max(50, 'ชื่อ icon ยาวเกินไป');
+const iconSchema = z.string().trim().min(1).max(50, msg('validation.iconTooLong'));
 
 export const createCategorySchema = z.object({
   name: categoryNameSchema,
@@ -31,7 +32,7 @@ export const updateCategorySchema = z
     color: colorSchema.nullable().optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateCategoryInput = z.input<typeof updateCategorySchema>;
 export type UpdateCategoryData = z.output<typeof updateCategorySchema>;

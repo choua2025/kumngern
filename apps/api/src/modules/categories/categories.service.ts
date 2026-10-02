@@ -4,7 +4,7 @@ import type {
   CreateCategoryData,
   UpdateCategoryData,
 } from '@income-expenses/shared';
-import { errors } from '../../lib/errors.js';
+import { detail, errors } from '../../lib/errors.js';
 import { toBigIntId } from '../../lib/params.js';
 import {
   type CategoriesRepository,
@@ -12,8 +12,8 @@ import {
   categoriesRepository,
 } from './categories.repository.js';
 
-const CATEGORY_NOT_FOUND = 'ไม่พบหมวดหมู่';
-const PARENT_NOT_FOUND = 'ไม่พบหมวดแม่';
+const CATEGORY_NOT_FOUND = 'errors.categoryNotFound';
+const PARENT_NOT_FOUND = 'errors.parentNotFound';
 
 function toCategoryDto(row: CategoryRow): CategoryDto {
   return {
@@ -61,23 +61,17 @@ export function createCategoriesService(categories: CategoriesRepository) {
       return null;
     }
     if (parentId === selfId) {
-      throw errors.validation(undefined, [
-        { path: 'parentId', message: 'หมวดเป็นแม่ของตัวเองไม่ได้' },
-      ]);
+      throw errors.validation(undefined, [detail('parentId', 'validation.parentSelf')]);
     }
     const parent = await categories.findVisibleById(userId, parentId);
     if (!parent) {
       throw errors.notFound(PARENT_NOT_FOUND);
     }
     if (parent.parentId !== null) {
-      throw errors.validation(undefined, [
-        { path: 'parentId', message: 'หมวดย่อยลึกได้ 1 ระดับเท่านั้น' },
-      ]);
+      throw errors.validation(undefined, [detail('parentId', 'validation.parentDepth')]);
     }
     if (parent.type !== type) {
-      throw errors.validation(undefined, [
-        { path: 'parentId', message: 'ประเภทต้องตรงกับหมวดแม่ (รายรับ/รายจ่าย)' },
-      ]);
+      throw errors.validation(undefined, [detail('parentId', 'validation.parentTypeMismatch')]);
     }
     return parentId;
   }
@@ -89,7 +83,7 @@ export function createCategoriesService(categories: CategoriesRepository) {
       throw errors.notFound(CATEGORY_NOT_FOUND);
     }
     if (category.userId === null) {
-      throw errors.forbidden('หมวดของระบบแก้ไขหรือลบไม่ได้');
+      throw errors.forbidden('errors.systemCategoryReadOnly');
     }
     return category;
   }
@@ -131,9 +125,7 @@ export function createCategoriesService(categories: CategoriesRepository) {
       if (input.parentId !== undefined) {
         parentId = await validateParent(userId, input.parentId, category.type, categoryId);
         if (parentId !== null && (await categories.hasChildren(categoryId))) {
-          throw errors.validation(undefined, [
-            { path: 'parentId', message: 'หมวดที่มีหมวดย่อยอยู่แล้วย้ายไปเป็นหมวดย่อยไม่ได้' },
-          ]);
+          throw errors.validation(undefined, [detail('parentId', 'validation.parentHasChildren')]);
         }
       }
 
@@ -150,9 +142,7 @@ export function createCategoriesService(categories: CategoriesRepository) {
     async delete(userId: bigint, categoryId: bigint): Promise<void> {
       await findOwnOrThrow(userId, categoryId);
       if (await categories.isInUse(categoryId)) {
-        throw errors.conflict(
-          'หมวดนี้ถูกใช้งานอยู่ (มีรายการ งบประมาณ รายการประจำ หรือหมวดย่อย) ลบไม่ได้',
-        );
+        throw errors.conflict('errors.categoryInUse');
       }
       if (!(await categories.delete(userId, categoryId))) {
         throw errors.notFound(CATEGORY_NOT_FOUND);

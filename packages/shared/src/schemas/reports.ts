@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import { CATEGORY_TYPES } from '../constants.js';
 import { monthSchema } from './budgets.js';
 import { localDateSchema } from './primitives.js';
@@ -12,7 +13,7 @@ export const byCategoryReportQuerySchema = z
     type: z.enum(CATEGORY_TYPES).default('expense'),
   })
   .refine((value) => value.from <= value.to, {
-    message: 'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด',
+    message: msg('validation.dateRange'),
     path: ['to'],
   });
 

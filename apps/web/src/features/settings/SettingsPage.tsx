@@ -122,7 +122,7 @@ function ProfileForm() {
 /** Client-only "confirm" field on top of the SAME new-password rules the API enforces. */
 const passwordFormSchema = z
   .object({
-    currentPassword: z.string().min(1, 'validation.enterCurrentPassword'),
+    currentPassword: z.string().min(1, 'validation.currentPasswordRequired'),
     newPassword: passwordSchema,
     confirmPassword: z.string(),
   })

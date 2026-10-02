@@ -31,14 +31,25 @@ Base URL: `/api/v1` · Content-Type: `application/json` (ยกเว้น uplo
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "ข้อมูลไม่ถูกต้อง",
-    "details": [ { "path": "amount", "message": "ต้องมากกว่า 0" } ],
+    "key": "validation.invalidInput",
+    "message": "Invalid input",
+    "details": [
+      { "path": "amount", "message": "The amount must be greater than 0", "key": "validation.amountPositive" },
+      { "path": "note", "message": "Too long (max 255 characters)", "key": "validation.tooLong?max=255" }
+    ],
     "requestId": "b1f7c1e2-..."
   }
 }
 ```
 
 `204 No Content` ไม่มี body
+
+**ข้อความหลายภาษา (design-doc D12):** `message` เป็นภาษาอังกฤษเสมอ (สำหรับ client ทั่วไปและ log) ส่วน `key` คือ reference ที่ใช้แปล
+
+- ค่า parameter ต่อท้ายหลัง `?` แบบ URL-encoded เช่น `errors.walletArchived?name=BCEL`
+- คำแปลภาษาไทย/อังกฤษ/ลาวอยู่ที่ `packages/shared/src/messages/` web ใช้ไฟล์ชุดเดียวกันนี้
+- `key` จะไม่มีมาด้วยถ้าข้อความไม่ได้มาจาก catalog (เช่น ข้อความ default ของ Zod หรือ readiness 503) ให้ใช้ `message` แทน
+- web ที่ไม่รู้จัก `key` (เช่น API ใหม่กว่า web) จะใช้ `message` แทน ไม่แสดง key ดิบๆ
 
 ### 1.3 Error codes
 

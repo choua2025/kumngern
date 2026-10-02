@@ -1,3 +1,4 @@
+import { serverMessagesEn } from '@income-expenses/shared';
 /**
  * English — the reference shape. th.ts and lo.ts must have exactly the same keys
  * (enforced by `satisfies Messages`), so a missing translation fails the build.
@@ -80,22 +81,19 @@ export const en = {
     tagline: 'Know where your money goes — every wallet in one place',
     checking: 'Checking your session',
   },
+  // Messages that also come from the API / shared Zod schemas live in packages/shared.
   validation: {
+    ...serverMessagesEn.validation,
     selectWallet: 'Please choose a wallet',
     selectTargetWallet: 'Please choose the destination wallet',
     selectCategory: 'Please choose a category',
     enterDateTime: 'Please enter a date and time',
     sameWallet: 'Must be different from the source wallet',
-    maxTags: 'At most 10 tags',
-    tooLong: 'Too long (max {{max}} characters)',
-    noteTooLong: 'Too long (max 255 characters)',
     invalidName: 'Invalid name',
-    enterCurrentPassword: 'Please enter your current password',
     passwordMismatch: 'The passwords do not match',
-    samePassword: 'The new password must differ from the current one',
-    dateRange: 'The start date must not be after the end date',
   },
   errors: {
+    ...serverMessagesEn.errors,
     network: 'Cannot reach the server. Please check your internet connection.',
     generic: 'Something went wrong. Please try again.',
     unexpected: 'An unexpected error occurred',

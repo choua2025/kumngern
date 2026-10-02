@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import { PAGINATION_DEFAULT_LIMIT, PAGINATION_MAX_LIMIT, TRANSACTION_TYPES } from '../constants.js';
 import {
   idSchema,
@@ -13,8 +14,8 @@ const MAX_TAGS_PER_TRANSACTION = 10;
 
 const tagIdsSchema = z
   .array(idSchema)
-  .max(MAX_TAGS_PER_TRANSACTION, `แท็กได้สูงสุด ${MAX_TAGS_PER_TRANSACTION} แท็ก`)
-  .refine((ids) => new Set(ids).size === ids.length, 'มีแท็กซ้ำกัน');
+  .max(MAX_TAGS_PER_TRANSACTION, msg('validation.maxTags', { max: MAX_TAGS_PER_TRANSACTION }))
+  .refine((ids) => new Set(ids).size === ids.length, msg('validation.duplicateTags'));
 
 const baseFields = {
   walletId: idSchema,
@@ -38,7 +39,7 @@ const transferSchema = z
     toAmount: positiveMoneySchema.nullable().optional(),
   })
   .refine((value) => value.walletId !== value.toWalletId, {
-    message: 'กระเป๋าต้นทางและปลายทางต้องไม่ใช่ใบเดียวกัน',
+    message: msg('validation.walletsMustDiffer'),
     path: ['toWalletId'],
   });
 
@@ -71,7 +72,7 @@ export const updateTransactionSchema = z
     tagIds: tagIdsSchema.optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateTransactionInput = z.input<typeof updateTransactionSchema>;
 export type UpdateTransactionData = z.output<typeof updateTransactionSchema>;
@@ -100,7 +101,7 @@ const transactionFilterFields = {
 const validDateRange = <T extends { from?: string | undefined; to?: string | undefined }>(
   value: T,
 ) => !value.from || !value.to || value.from <= value.to;
-const dateRangeError = { message: 'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด', path: ['to'] };
+const dateRangeError = { message: msg('validation.dateRange'), path: ['to'] };
 
 export const listTransactionsQuerySchema = z
   .object({

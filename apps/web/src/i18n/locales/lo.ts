@@ -1,3 +1,4 @@
+import { serverMessagesLo } from '@income-expenses/shared';
 import type { Messages } from './en';
 
 /**
@@ -81,22 +82,19 @@ export const lo = {
     tagline: 'ຮູ້ວ່າເງິນໄປໃສ ທຸກກະເປົາໃນບ່ອນດຽວ',
     checking: 'ກຳລັງກວດສອບການເຂົ້າສູ່ລະບົບ',
   },
+  // Messages that also come from the API / shared Zod schemas live in packages/shared.
   validation: {
+    ...serverMessagesLo.validation,
     selectWallet: 'ກະລຸນາເລືອກກະເປົາ',
     selectTargetWallet: 'ກະລຸນາເລືອກກະເປົາປາຍທາງ',
     selectCategory: 'ກະລຸນາເລືອກໝວດໝູ່',
     enterDateTime: 'ກະລຸນາລະບຸວັນເວລາ',
     sameWallet: 'ຕ້ອງບໍ່ແມ່ນກະເປົາດຽວກັບຕົ້ນທາງ',
-    maxTags: 'ແທັກໄດ້ສູງສຸດ 10 ແທັກ',
-    tooLong: 'ຍາວເກີນໄປ (ສູງສຸດ {{max}} ຕົວອັກສອນ)',
-    noteTooLong: 'ຍາວເກີນໄປ (ສູງສຸດ 255 ຕົວອັກສອນ)',
     invalidName: 'ຊື່ບໍ່ຖືກຕ້ອງ',
-    enterCurrentPassword: 'ກະລຸນາປ້ອນລະຫັດຜ່ານປັດຈຸບັນ',
     passwordMismatch: 'ລະຫັດຜ່ານຢືນຢັນບໍ່ກົງກັນ',
-    samePassword: 'ລະຫັດຜ່ານໃໝ່ຕ້ອງບໍ່ຊ້ຳກັບລະຫັດຜ່ານເກົ່າ',
-    dateRange: 'ວັນທີເລີ່ມຕ້ອງບໍ່ເກີນວັນທີສິ້ນສຸດ',
   },
   errors: {
+    ...serverMessagesLo.errors,
     network: 'ເຊື່ອມຕໍ່ເຊີບເວີບໍ່ໄດ້ ກະລຸນາກວດສອບອິນເຕີເນັດ',
     generic: 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່',
     unexpected: 'ເກີດຂໍ້ຜິດພາດທີ່ບໍ່ຄາດຄິດ',

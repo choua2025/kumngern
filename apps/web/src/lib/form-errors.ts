@@ -14,7 +14,8 @@ export function applyApiErrors<T extends FieldValues>(
   let unmatched = apiError.details.length === 0;
   for (const detail of apiError.details) {
     if ((fields as readonly string[]).includes(detail.path)) {
-      setError(detail.path as Path<T>, { type: 'server', message: detail.message });
+      // The key (when present) is translated by the field; the text is the fallback.
+      setError(detail.path as Path<T>, { type: 'server', message: detail.key ?? detail.message });
     } else {
       unmatched = true;
     }

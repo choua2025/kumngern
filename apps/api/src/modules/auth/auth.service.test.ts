@@ -82,7 +82,7 @@ describe('authService.login', () => {
 
     await expect(
       ctx.service.login({ email: 'ghost@example.com', password: 'whatever1' }),
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED', message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED', key: 'errors.invalidCredentials' });
     expect(ctx.refreshTokens.create).not.toHaveBeenCalled();
   });
 

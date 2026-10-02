@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 
 export const tagNameSchema = z
-  .string({ error: 'กรุณากรอกชื่อแท็ก' })
+  .string({ error: msg('validation.tagNameRequired') })
   .trim()
-  .min(1, 'กรุณากรอกชื่อแท็ก')
-  .max(50, 'ชื่อแท็กยาวเกินไป (สูงสุด 50 ตัวอักษร)');
+  .min(1, msg('validation.tagNameRequired'))
+  .max(50, msg('validation.nameTooLong', { max: 50 }));
 
 export const createTagSchema = z.object({ name: tagNameSchema });
 export type CreateTagInput = z.infer<typeof createTagSchema>;

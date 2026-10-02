@@ -13,7 +13,7 @@ export function createAuthRouter(): Router {
   const loginRateLimiter = createRateLimiter({
     windowMs: 60_000,
     limit: config.LOGIN_RATE_LIMIT_PER_MINUTE,
-    message: 'พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอ 1 นาทีแล้วลองใหม่',
+    message: 'errors.loginRateLimited',
   });
 
   router.post('/register', validate(registerRequest), authController.register);
