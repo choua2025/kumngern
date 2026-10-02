@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { flattenCategories, useCategories } from '../../api/categories';
 import { errorMessage } from '../../api/errors';
 import {
@@ -26,6 +27,7 @@ import { Money } from '../../components/Money';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
 import { formatDateTime } from '../../lib/date';
+import { formatCount } from '../../lib/money';
 import { useCurrentUser } from '../auth/auth-context';
 import { TransactionFormModal } from './TransactionFormModal';
 import { TransactionItem, transactionTitle } from './TransactionItem';
@@ -41,6 +43,7 @@ function useDebounced<T>(value: T, delayMs: number): T {
 }
 
 function Filters() {
+  const { t } = useTranslation();
   const { filters, update, clear } = useTransactionFilters();
   const wallets = useWallets(true);
   const categories = useCategories();
@@ -59,7 +62,7 @@ function Filters() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative sm:col-span-2">
           <InputField
-            label="ค้นหาในบันทึก"
+            label={t('transactions.search')}
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -71,33 +74,33 @@ function Filters() {
           />
         </div>
         <InputField
-          label="ตั้งแต่"
+          label={t('common.from')}
           type="date"
           value={filters.from ?? ''}
           onChange={(e) => update({ from: e.target.value })}
         />
         <InputField
-          label="ถึง"
+          label={t('common.to')}
           type="date"
           value={filters.to ?? ''}
           onChange={(e) => update({ to: e.target.value })}
         />
         <SelectField
-          label="ประเภท"
+          label={t('common.type')}
           value={filters.type ?? ''}
           onChange={(e) => update({ type: e.target.value })}
         >
-          <option value="">ทั้งหมด</option>
-          <option value="expense">รายจ่าย</option>
-          <option value="income">รายรับ</option>
-          <option value="transfer">โอน</option>
+          <option value="">{t('common.all')}</option>
+          <option value="expense">{t('common.expense')}</option>
+          <option value="income">{t('common.income')}</option>
+          <option value="transfer">{t('common.transfer')}</option>
         </SelectField>
         <SelectField
-          label="กระเป๋า"
+          label={t('common.wallet')}
           value={filters.walletId ?? ''}
           onChange={(e) => update({ walletId: e.target.value })}
         >
-          <option value="">ทั้งหมด</option>
+          <option value="">{t('common.all')}</option>
           {wallets.data?.map((wallet) => (
             <option key={wallet.id} value={wallet.id}>
               {wallet.name}
@@ -105,25 +108,27 @@ function Filters() {
           ))}
         </SelectField>
         <SelectField
-          label="หมวดหมู่"
+          label={t('common.category')}
           value={filters.categoryId ?? ''}
           onChange={(e) => update({ categoryId: e.target.value })}
         >
-          <option value="">ทั้งหมด</option>
+          <option value="">{t('common.all')}</option>
           {flattenCategories(categories.data ?? []).map((category) => (
             <option key={category.id} value={category.id}>
               {category.depth ? '　└ ' : ''}
               {category.name}{' '}
-              {category.depth ? '' : `(${category.type === 'income' ? 'รับ' : 'จ่าย'})`}
+              {category.depth
+                ? ''
+                : `(${category.type === 'income' ? t('common.incomeShort') : t('common.expenseShort')})`}
             </option>
           ))}
         </SelectField>
         <SelectField
-          label="แท็ก"
+          label={t('transactions.tag')}
           value={filters.tagId ?? ''}
           onChange={(e) => update({ tagId: e.target.value })}
         >
-          <option value="">ทั้งหมด</option>
+          <option value="">{t('common.all')}</option>
           {tags.data?.map((tag) => (
             <option key={tag.id} value={tag.id}>
               #{tag.name}
@@ -131,14 +136,14 @@ function Filters() {
           ))}
         </SelectField>
         <SelectField
-          label="เรียงตาม"
+          label={t('transactions.sortBy')}
           value={filters.sort ?? 'occurredAt:desc'}
           onChange={(e) => update({ sort: e.target.value })}
         >
-          <option value="occurredAt:desc">ใหม่สุดก่อน</option>
-          <option value="occurredAt:asc">เก่าสุดก่อน</option>
-          <option value="amount:desc">จำนวนมากสุดก่อน</option>
-          <option value="amount:asc">จำนวนน้อยสุดก่อน</option>
+          <option value="occurredAt:desc">{t('transactions.newest')}</option>
+          <option value="occurredAt:asc">{t('transactions.oldest')}</option>
+          <option value="amount:desc">{t('transactions.largest')}</option>
+          <option value="amount:asc">{t('transactions.smallest')}</option>
         </SelectField>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -149,7 +154,7 @@ function Filters() {
             onChange={(e) => update({ deleted: e.target.checked ? 'true' : undefined })}
             className="size-4 rounded"
           />
-          ถังขยะ (รายการที่ลบแล้ว)
+          {t('transactions.showTrash')}
         </label>
         <Button
           variant="ghost"
@@ -159,7 +164,7 @@ function Filters() {
             clear();
           }}
         >
-          ล้างตัวกรอง
+          {t('transactions.clearFilters')}
         </Button>
       </div>
     </Card>
@@ -167,6 +172,7 @@ function Filters() {
 }
 
 export function TransactionsPage() {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   const toast = useToast();
   const { filters, update } = useTransactionFilters();
@@ -192,7 +198,7 @@ export function TransactionsPage() {
   const restore = async (tx: TransactionDto) => {
     try {
       await restoreTransaction.mutateAsync(tx.id);
-      toast.show('กู้คืนรายการแล้ว');
+      toast.show(t('transactions.restored'));
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
     }
@@ -202,7 +208,9 @@ export function TransactionsPage() {
     try {
       await deleteTransaction.mutateAsync(tx.id);
       // Soft delete is reversible, so offer Undo instead of an "Are you sure?" dialog.
-      toast.show('ลบรายการแล้ว', { action: { label: 'เลิกทำ', onClick: () => void restore(tx) } });
+      toast.show(t('transactions.deleted'), {
+        action: { label: t('common.undo'), onClick: () => void restore(tx) },
+      });
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
     }
@@ -214,9 +222,9 @@ export function TransactionsPage() {
         variant="ghost"
         size="sm"
         onClick={() => void restore(tx)}
-        aria-label={`กู้คืน ${transactionTitle(tx)}`}
+        aria-label={t('transactions.restoreItem', { name: transactionTitle(tx) })}
       >
-        <RotateCcw className="size-4" aria-hidden /> กู้คืน
+        <RotateCcw className="size-4" aria-hidden /> {t('common.restore')}
       </Button>
     ) : (
       <div className="flex">
@@ -224,7 +232,7 @@ export function TransactionsPage() {
           variant="ghost"
           size="sm"
           onClick={() => setEditing(tx)}
-          aria-label={`แก้ไข ${transactionTitle(tx)}`}
+          aria-label={t('common.editItem', { name: transactionTitle(tx) })}
         >
           <Pencil className="size-4" aria-hidden />
         </Button>
@@ -232,7 +240,7 @@ export function TransactionsPage() {
           variant="ghost"
           size="sm"
           onClick={() => void remove(tx)}
-          aria-label={`ลบ ${transactionTitle(tx)}`}
+          aria-label={t('common.deleteItem', { name: transactionTitle(tx) })}
         >
           <Trash2 className="size-4" aria-hidden />
         </Button>
@@ -245,18 +253,20 @@ export function TransactionsPage() {
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{inTrash ? 'ถังขยะ' : 'รายการ'}</h1>
+        <h1 className="text-2xl font-bold">
+          {inTrash ? t('transactions.trash') : t('transactions.title')}
+        </h1>
         <div className="flex gap-2">
           <Button
             variant="secondary"
             loading={exporting}
             onClick={() => void exportCsv()}
-            title="ส่งออกตามตัวกรองปัจจุบัน (UTF-8, เปิดใน Excel ได้)"
+            title={t('transactions.exportTitle')}
           >
             <Download className="size-4" aria-hidden /> Export CSV
           </Button>
           <Button variant="secondary" onClick={() => setTransferOpen(true)}>
-            โอนเงิน
+            {t('transactions.transferMoney')}
           </Button>
         </div>
       </header>
@@ -270,8 +280,8 @@ export function TransactionsPage() {
           <ErrorState error={list.error} onRetry={() => void list.refetch()} />
         ) : list.data.data.length === 0 ? (
           <EmptyState
-            title={inTrash ? 'ถังขยะว่าง' : 'ไม่พบรายการ'}
-            description={inTrash ? undefined : 'ลองเปลี่ยนตัวกรอง หรือกดคีย์ N เพื่อเพิ่มรายการ'}
+            title={inTrash ? t('transactions.trashEmpty') : t('transactions.noneFound')}
+            description={inTrash ? undefined : t('transactions.noneFoundHint')}
           />
         ) : (
           <>
@@ -292,22 +302,22 @@ export function TransactionsPage() {
                 <thead className="border-b border-slate-200 text-slate-500 dark:border-slate-700">
                   <tr>
                     <th scope="col" className="py-2 pr-4 font-medium">
-                      วันเวลา
+                      {t('transactions.colDate')}
                     </th>
                     <th scope="col" className="py-2 pr-4 font-medium">
-                      รายการ
+                      {t('transactions.colItem')}
                     </th>
                     <th scope="col" className="py-2 pr-4 font-medium">
-                      กระเป๋า
+                      {t('common.wallet')}
                     </th>
                     <th scope="col" className="py-2 pr-4 font-medium">
-                      บันทึก
+                      {t('common.note')}
                     </th>
                     <th scope="col" className="py-2 pr-4 text-right font-medium">
-                      จำนวน
+                      {t('common.amount')}
                     </th>
                     <th scope="col" className="py-2">
-                      <span className="sr-only">การกระทำ</span>
+                      <span className="sr-only">{t('transactions.colActions')}</span>
                     </th>
                   </tr>
                 </thead>
@@ -323,10 +333,10 @@ export function TransactionsPage() {
                         {tx.attachmentCount > 0 && (
                           <span
                             className="mr-1.5 inline-flex items-center gap-0.5 align-middle text-xs"
-                            title={`ไฟล์แนบ ${tx.attachmentCount} ไฟล์`}
+                            title={t('transactions.attachmentCount', { count: tx.attachmentCount })}
                           >
                             <Paperclip className="size-3.5" aria-hidden />
-                            <span className="sr-only">ไฟล์แนบ</span>
+                            <span className="sr-only">{t('transactions.attachments')}</span>
                             {tx.attachmentCount}
                           </span>
                         )}
@@ -355,12 +365,15 @@ export function TransactionsPage() {
 
             {meta && (
               <nav
-                aria-label="เลือกหน้า"
+                aria-label={t('transactions.choosePage')}
                 className="mt-4 flex items-center justify-between gap-2 text-sm"
               >
                 <span className="text-slate-500">
-                  หน้า {meta.page} / {totalPages} · ทั้งหมด {meta.total.toLocaleString('th-TH')}{' '}
-                  รายการ
+                  {t('transactions.pageInfo', {
+                    page: meta.page,
+                    pages: totalPages,
+                    total: formatCount(meta.total),
+                  })}
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -369,7 +382,7 @@ export function TransactionsPage() {
                     disabled={meta.page <= 1}
                     onClick={() => update({ page: String(meta.page - 1) })}
                   >
-                    <ChevronLeft className="size-4" aria-hidden /> ก่อนหน้า
+                    <ChevronLeft className="size-4" aria-hidden /> {t('common.previous')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -377,7 +390,7 @@ export function TransactionsPage() {
                     disabled={meta.page >= totalPages}
                     onClick={() => update({ page: String(meta.page + 1) })}
                   >
-                    ถัดไป <ChevronRight className="size-4" aria-hidden />
+                    {t('common.next')} <ChevronRight className="size-4" aria-hidden />
                   </Button>
                 </div>
               </nav>

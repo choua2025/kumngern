@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type CategoryDto, colorSchema, createCategorySchema } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useCreateCategory, useUpdateCategory } from '../../api/categories';
 import { Button } from '../../components/Button';
@@ -10,6 +11,7 @@ import { InputField, SelectField } from '../../components/Field';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/toast';
 import { cn } from '../../lib/cn';
+import { translateMessage } from '../../i18n/use-message';
 import { applyApiErrors } from '../../lib/form-errors';
 
 /** A small, readable set; users can still enter any #RRGGBB via the picker. */
@@ -45,6 +47,7 @@ function CategoryForm({
   roots: CategoryDto[];
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const toast = useToast();
@@ -85,10 +88,10 @@ function CategoryForm({
     try {
       if (category) {
         await updateCategory.mutateAsync({ id: category.id, patch: body });
-        toast.show('บันทึกหมวดแล้ว');
+        toast.show(t('categories.saved'));
       } else {
         await createCategory.mutateAsync({ ...body, type: values.type });
-        toast.show('สร้างหมวดแล้ว');
+        toast.show(t('categories.created'));
       }
       onDone();
     } catch (error) {
@@ -110,7 +113,7 @@ function CategoryForm({
         <CategoryIcon icon={icon} color={color} />
         <div className="flex-1">
           <InputField
-            label="ชื่อหมวด"
+            label={t('categories.name')}
             autoFocus
             error={errors.name?.message}
             {...register('name')}
@@ -119,11 +122,11 @@ function CategoryForm({
       </div>
       {canHaveParent && (
         <SelectField
-          label="อยู่ภายใต้หมวด"
+          label={t('categories.parent')}
           error={errors.parentId?.message}
           {...register('parentId')}
         >
-          <option value="">— เป็นหมวดหลัก —</option>
+          <option value="">{t('categories.topLevel')}</option>
           {parentOptions.map((root) => (
             <option key={root.id} value={root.id}>
               {root.name}
@@ -133,7 +136,7 @@ function CategoryForm({
       )}
       <fieldset>
         <legend className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-          ไอคอน
+          {t('categories.icon')}
         </legend>
         <div className="flex flex-wrap gap-2">
           {CATEGORY_ICON_NAMES.map((name) => (
@@ -155,14 +158,14 @@ function CategoryForm({
       </fieldset>
       <fieldset>
         <legend className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-          สี
+          {t('categories.color')}
         </legend>
         <div className="flex flex-wrap items-center gap-2">
           {SWATCHES.map((swatch) => (
             <button
               key={swatch}
               type="button"
-              aria-label={`สี ${swatch}`}
+              aria-label={t('categories.colorItem', { color: swatch })}
               aria-pressed={color.toUpperCase() === swatch}
               onClick={() => setValue('color', swatch)}
               className={cn(
@@ -176,14 +179,18 @@ function CategoryForm({
             type="color"
             value={color}
             onChange={(event) => setValue('color', event.target.value.toUpperCase())}
-            aria-label="เลือกสีอื่น"
+            aria-label={t('categories.customColor')}
             className="size-8 cursor-pointer rounded border-0 bg-transparent"
           />
         </div>
-        {errors.color && <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>}
+        {errors.color && (
+          <p className="mt-1 text-sm text-red-600">
+            {translateMessage(errors.color.message ?? '')}
+          </p>
+        )}
       </fieldset>
       <Button type="submit" loading={isSubmitting} className="w-full">
-        {category ? 'บันทึก' : 'สร้างหมวด'}
+        {category ? t('common.save') : t('categories.create')}
       </Button>
     </form>
   );
@@ -202,11 +209,18 @@ export function CategoryFormModal({
   roots: CategoryDto[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={category ? 'แก้ไขหมวด' : type === 'expense' ? 'เพิ่มหมวดรายจ่าย' : 'เพิ่มหมวดรายรับ'}
+      title={
+        category
+          ? t('categories.editTitle')
+          : type === 'expense'
+            ? t('categories.addExpense')
+            : t('categories.addIncome')
+      }
     >
       <CategoryForm category={category} type={type} roots={roots} onDone={onClose} />
     </Modal>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { Skeleton } from '../../components/states';
+import { i18n } from '../../i18n';
 import { safeRedirectPath } from '../../lib/safe-redirect';
 import { useAuth } from './auth-context';
 
@@ -13,7 +14,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return (
       <div
         role="status"
-        aria-label="กำลังตรวจสอบการเข้าสู่ระบบ"
+        aria-label={i18n.t('auth.checking')}
         className="mx-auto max-w-5xl space-y-4 p-6"
       >
         <Skeleton className="h-10 w-48" />

@@ -1,26 +1,20 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useWallets } from '../../api/wallets';
 import { Money } from '../../components/Money';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { totalsByCurrency } from '../../lib/money';
 
-const WALLET_TYPE_LABEL: Record<string, string> = {
-  cash: 'เงินสด',
-  bank: 'ธนาคาร',
-  ewallet: 'e-wallet',
-  credit_card: 'บัตรเครดิต',
-  saving: 'เงินออม',
-};
-
 export function WalletBalances() {
+  const { t } = useTranslation();
   const wallets = useWallets();
 
   return (
     <Card
-      title="ยอดคงเหลือทุกกระเป๋า"
+      title={t('dashboard.balances')}
       action={
         <Link to="/wallets" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-          จัดการ
+          {t('common.manage')}
         </Link>
       }
     >
@@ -29,10 +23,7 @@ export function WalletBalances() {
       ) : wallets.isError ? (
         <ErrorState error={wallets.error} onRetry={() => void wallets.refetch()} />
       ) : wallets.data.length === 0 ? (
-        <EmptyState
-          title="ยังไม่มีกระเป๋าเงิน"
-          description="เพิ่มเงินสด บัญชีธนาคาร หรือ e-wallet ใบแรก"
-        />
+        <EmptyState title={t('dashboard.noWallets')} description={t('dashboard.noWalletsHint')} />
       ) : (
         <>
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -40,9 +31,7 @@ export function WalletBalances() {
               <li key={wallet.id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{wallet.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {WALLET_TYPE_LABEL[wallet.type] ?? wallet.type}
-                  </p>
+                  <p className="text-xs text-slate-500">{t(`walletTypes.${wallet.type}`)}</p>
                 </div>
                 <Money
                   amount={wallet.balance}
@@ -59,7 +48,9 @@ export function WalletBalances() {
               wallets.data.map((w) => ({ currencyCode: w.currencyCode, amount: w.balance })),
             ).map((total) => (
               <p key={total.currencyCode} className="flex justify-between text-sm">
-                <span className="text-slate-500">รวม {total.currencyCode}</span>
+                <span className="text-slate-500">
+                  {t('common.totalIn', { currency: total.currencyCode })}
+                </span>
                 <Money
                   amount={total.total}
                   currency={total.currencyCode}

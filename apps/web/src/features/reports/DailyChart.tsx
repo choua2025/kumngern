@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useDailyReport } from '../../api/reports';
 import { useFormatMoney } from '../../components/Money';
 import { Card, EmptyState, ErrorState, Skeleton } from '../../components/states';
 import { formatDate } from '../../lib/date';
-import { sumMoney } from '../../lib/money';
-
-const compact = new Intl.NumberFormat('th-TH', { notation: 'compact', maximumFractionDigits: 1 });
+import { formatCompact, sumMoney } from '../../lib/money';
 
 interface Row {
   day: string;
@@ -18,6 +17,7 @@ interface Row {
 
 /** Single series → no legend; the title names it. Same orange as "รายจ่าย" elsewhere. */
 export function DailyChart({ month, action }: { month: string; action?: ReactNode }) {
+  const { t } = useTranslation();
   const daily = useDailyReport(month);
   const format = useFormatMoney();
 
@@ -31,17 +31,17 @@ export function DailyChart({ month, action }: { month: string; action?: ReactNod
   const total = sumMoney(rows.map((row) => row.expense));
 
   return (
-    <Card title="รายจ่ายรายวัน" action={action}>
+    <Card title={t('reports.dailyExpense')} action={action}>
       {daily.isPending ? (
         <Skeleton className="h-64" />
       ) : daily.isError ? (
         <ErrorState error={daily.error} onRetry={() => void daily.refetch()} />
       ) : rows.every((row) => row.value === 0) ? (
-        <EmptyState title="ไม่มีรายจ่ายในเดือนนี้" />
+        <EmptyState title={t('reports.noExpenseThisMonth')} />
       ) : (
         <>
           <p className="mb-2 text-sm text-slate-500">
-            รวมทั้งเดือน{' '}
+            {t('reports.monthTotal')}{' '}
             <span className="font-semibold text-slate-900 dark:text-slate-100">
               {format(total, daily.data.currencyCode)}
             </span>
@@ -66,7 +66,7 @@ export function DailyChart({ month, action }: { month: string; action?: ReactNod
                   tickLine={false}
                   axisLine={false}
                   tick={{ fill: 'var(--chart-text)' }}
-                  tickFormatter={(value: number) => compact.format(value)}
+                  tickFormatter={(value: number) => formatCompact(value)}
                 />
                 <Tooltip
                   cursor={{ fill: 'var(--chart-grid)', opacity: 0.5 }}
@@ -76,10 +76,15 @@ export function DailyChart({ month, action }: { month: string; action?: ReactNod
                   }}
                   formatter={(_value, _name, entry) => [
                     format((entry.payload as Row).expense, daily.data.currencyCode),
-                    'รายจ่าย',
+                    t('common.expense'),
                   ]}
                 />
-                <Bar dataKey="value" name="รายจ่าย" fill="var(--series-2)" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="value"
+                  name={t('common.expense')}
+                  fill="var(--series-2)"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>

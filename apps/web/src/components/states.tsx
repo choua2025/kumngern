@@ -1,5 +1,6 @@
 import { AlertTriangle, Inbox } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toApiError } from '../api/errors';
 import { cn } from '../lib/cn';
 import { Button } from './Button';
@@ -14,9 +15,10 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
-export function LoadingRows({ rows = 5, label = 'กำลังโหลด' }: { rows?: number; label?: string }) {
+export function LoadingRows({ rows = 5, label }: { rows?: number; label?: string }) {
+  const { t } = useTranslation();
   return (
-    <div role="status" aria-label={label} className="space-y-3">
+    <div role="status" aria-label={label ?? t('common.loading')} className="space-y-3">
       {Array.from({ length: rows }, (_, index) => (
         <Skeleton key={index} className="h-12" />
       ))}
@@ -44,6 +46,7 @@ export function EmptyState({
 }
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation();
   const apiError = toApiError(error);
   return (
     <div
@@ -54,12 +57,12 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       <p className="font-medium text-red-800 dark:text-red-200">{apiError.message}</p>
       {apiError.requestId && (
         <p className="text-xs text-red-700/80 dark:text-red-300/80">
-          รหัสอ้างอิง: {apiError.requestId}
+          {t('common.referenceId', { id: apiError.requestId })}
         </p>
       )}
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry} className="mt-2">
-          ลองใหม่
+          {t('common.retry')}
         </Button>
       )}
     </div>

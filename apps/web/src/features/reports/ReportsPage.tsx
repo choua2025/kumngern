@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { InputField } from '../../components/Field';
 import { MonthPicker } from '../../components/MonthPicker';
 import { Card } from '../../components/states';
 import { cn } from '../../lib/cn';
 import { addMonths, currentMonthIn, lastDayOfMonth, todayIn } from '../../lib/date';
 import { useCurrentUser } from '../auth/auth-context';
+import { i18n } from '../../i18n';
 import { CategoryDonut } from '../dashboard/CategoryDonut';
 import { SummaryCards } from '../dashboard/SummaryCards';
 import { TrendChart } from '../dashboard/TrendChart';
@@ -20,13 +22,19 @@ function presets(timezone: string): { label: string; range: Range }[] {
   const lastMonth = addMonths(month, -1);
   const year = month.slice(0, 4);
   return [
-    { label: 'เดือนนี้', range: { from: `${month}-01`, to: lastDayOfMonth(month) } },
-    { label: 'เดือนที่แล้ว', range: { from: `${lastMonth}-01`, to: lastDayOfMonth(lastMonth) } },
     {
-      label: '3 เดือนล่าสุด',
+      label: i18n.t('reports.thisMonth'),
+      range: { from: `${month}-01`, to: lastDayOfMonth(month) },
+    },
+    {
+      label: i18n.t('reports.lastMonth'),
+      range: { from: `${lastMonth}-01`, to: lastDayOfMonth(lastMonth) },
+    },
+    {
+      label: i18n.t('reports.last3Months'),
       range: { from: `${addMonths(month, -2)}-01`, to: todayIn(timezone) },
     },
-    { label: 'ปีนี้', range: { from: `${year}-01-01`, to: `${year}-12-31` } },
+    { label: i18n.t('reports.thisYear'), range: { from: `${year}-01-01`, to: `${year}-12-31` } },
   ];
 }
 
@@ -69,6 +77,7 @@ function Segmented<T extends string | number>({
 }
 
 export function ReportsPage() {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   const presetList = presets(user.timezone);
   const [range, setRange] = useState<Range>(presetList[0]?.range ?? { from: '', to: '' });
@@ -80,12 +89,12 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">รายงาน</h1>
+      <h1 className="text-2xl font-bold">{t('reports.title')}</h1>
 
       {/* Month view: summary + daily */}
-      <section aria-label="สรุปรายเดือน" className="space-y-4">
+      <section aria-label={t('reports.monthlySummary')} className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">สรุปรายเดือน</h2>
+          <h2 className="text-lg font-semibold">{t('reports.monthlySummary')}</h2>
           <MonthPicker month={month} onChange={setMonth} max={currentMonth} />
         </div>
         <SummaryCards month={month} />
@@ -94,19 +103,19 @@ export function ReportsPage() {
 
       <TrendChart
         months={trendMonths}
-        title="แนวโน้มรายรับ-รายจ่าย"
+        title={t('reports.trend')}
         action={
           <Segmented
-            label="จำนวนเดือน"
+            label={t('reports.monthCount')}
             value={trendMonths}
             onChange={setTrendMonths}
-            options={[3, 6, 12].map((n) => ({ value: n, label: `${n} เดือน` }))}
+            options={[3, 6, 12].map((n) => ({ value: n, label: t('common.months', { count: n }) }))}
           />
         }
       />
 
       {/* Range view: by category */}
-      <Card title="ตามหมวดหมู่ตามช่วงวันที่">
+      <Card title={t('reports.byCategoryRange')}>
         <div className="flex flex-wrap gap-2">
           {presetList.map((preset) => (
             <button
@@ -127,17 +136,17 @@ export function ReportsPage() {
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-md">
           <InputField
-            label="ตั้งแต่"
+            label={t('common.from')}
             type="date"
             value={range.from}
             onChange={(e) => setRange({ ...range, from: e.target.value })}
           />
           <InputField
-            label="ถึง"
+            label={t('common.to')}
             type="date"
             value={range.to}
             onChange={(e) => setRange({ ...range, to: e.target.value })}
-            error={rangeValid ? undefined : 'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด'}
+            error={rangeValid ? undefined : 'validation.dateRange'}
           />
         </div>
       </Card>
@@ -146,15 +155,19 @@ export function ReportsPage() {
           from={range.from}
           to={range.to}
           type={categoryType}
-          title={categoryType === 'expense' ? 'รายจ่ายตามหมวด' : 'รายรับตามหมวด'}
+          title={
+            categoryType === 'expense'
+              ? t('reports.expenseByCategory')
+              : t('reports.incomeByCategory')
+          }
           action={
             <Segmented
-              label="ประเภท"
+              label={t('common.type')}
               value={categoryType}
               onChange={setCategoryType}
               options={[
-                { value: 'expense', label: 'รายจ่าย' },
-                { value: 'income', label: 'รายรับ' },
+                { value: 'expense', label: t('common.expense') },
+                { value: 'income', label: t('common.income') },
               ]}
             />
           }

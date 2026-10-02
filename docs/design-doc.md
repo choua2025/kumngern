@@ -336,6 +336,20 @@ wallet แต่ละใบมีสกุลเงินของตัวเ�
 
 > 💡 **Interview note:** `$queryRaw\`... ${x}\``(tagged template) ปลอดภัยเพราะถูก bind เป็น parameter แต่`$queryRawUnsafe(\`... ${x}\`)` คือ SQL injection
 
+### D12. หลายภาษา: ไทย / English / ລາວ
+
+| เรื่อง             | ตัดสินใจ                                                                                     | เหตุผล                                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| library            | `react-i18next` + ไฟล์คำแปลเป็น **TypeScript** (`th`/`lo` ใช้ `satisfies Messages` ของ `en`) | key ไม่ครบหรือพิมพ์ผิด = build ไม่ผ่าน และ `t('…')` มี autocomplete                                                        |
+| เลือกภาษา          | ภาษาที่เลือกไว้ (localStorage) → `navigator.languages` → ไทย                                 | ยังไม่ login ก็ได้ภาษาที่ถูกต้อง (PR 2 จะ sync กับ `users.locale`)                                                         |
+| เปลี่ยนภาษา        | remount `<App key={language}>`                                                               | ทุก component render ใหม่ รวมถึงตัวที่ format วันที่/เงินโดยไม่ได้เรียก `useTranslation`, cache ของ TanStack Query ยังอยู่ |
+| ข้อความ validation | เก็บเป็น **key** ส่วน `FieldShell` จะแปลถ้าเป็น key และแสดงตามเดิมถ้าไม่ใช่                  | ย้ายไปใช้ key ทีละ form ได้ ข้อความจาก API ยังแสดงได้ระหว่างที่ทำ PR 2                                                     |
+| วันที่ภาษาลาว      | สร้างจากตารางชื่อเดือนของ CLDR เอง **ทุก browser**                                           | Chromium (Chrome/Edge/Android) **ไม่มีข้อมูล Intl ภาษาลาว** และ fallback เป็น `en-US` โดยไม่แจ้ง ("October 2026")          |
+| ตัวเลขภาษาลาว      | ตรึงเป็น `en-US` (`1,234,567.50`)                                                            | Chrome ได้ `1,234,567`, Firefox ได้ `1.234.567` ตาม CLDR จึงตรึงให้เหมือนกันทุกเครื่อง **(รอผู้ใช้ภาษาลาวยืนยัน)**         |
+| font               | system font stack (`Noto Sans Lao`, `Phetsarath OT`, `Leelawadee UI`) ไม่ดาวน์โหลดจากภายนอก  | CSP `font-src 'self'`                                                                                                      |
+
+> 💡 **Interview note:** การทดสอบ i18n แค่ "key ครบ" ไม่พอ test ของเราตรวจด้วยว่า **`{{placeholder}}` ตรงกันทุกภาษา** (ถ้าแปลแล้วลืม `{{name}}` ประโยคจะขาดชื่อไปเฉยๆ) และตรวจว่า**ไฟล์ภาษาลาวไม่มีอักษรไทยหลุดเข้ามา**
+
 ---
 
 ## 7. Security

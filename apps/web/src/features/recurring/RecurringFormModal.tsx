@@ -10,6 +10,7 @@ import {
 } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { flattenCategories, useCategories } from '../../api/categories';
 import { useCreateRecurring, useUpdateRecurring } from '../../api/recurring';
@@ -21,7 +22,7 @@ import { useToast } from '../../components/toast';
 import { todayIn } from '../../lib/date';
 import { applyApiErrors } from '../../lib/form-errors';
 import { useCurrentUser } from '../auth/auth-context';
-import { FREQUENCY_LABELS } from './labels';
+import { frequencyLabel } from './labels';
 
 /**
  * The API schema with form-friendly types: empty inputs are '' (not null) and the
@@ -30,10 +31,10 @@ import { FREQUENCY_LABELS } from './labels';
 const formSchema = z
   .object({
     type: z.enum(['expense', 'income']),
-    walletId: z.string().min(1, 'กรุณาเลือกกระเป๋า').pipe(idSchema),
-    categoryId: z.string().min(1, 'กรุณาเลือกหมวดหมู่').pipe(idSchema),
+    walletId: z.string().min(1, 'validation.selectWallet').pipe(idSchema),
+    categoryId: z.string().min(1, 'validation.selectCategory').pipe(idSchema),
     amount: positiveMoneySchema,
-    note: z.string().trim().max(255, 'ยาวเกินไป (สูงสุด 255 ตัวอักษร)'),
+    note: z.string().trim().max(255, 'validation.noteTooLong'),
     frequency: z.enum(RECURRING_FREQUENCIES),
     nextRunDate: localDateSchema,
     endDate: z.union([z.literal(''), localDateSchema]),
@@ -67,6 +68,7 @@ function RecurringForm({
   recurring: RecurringDto | null;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   // Archived wallets are listed only to keep the CURRENT one selectable when editing.
   const wallets = useWallets(true);
@@ -104,10 +106,10 @@ function RecurringForm({
     try {
       if (recurring) {
         await updateRecurring.mutateAsync({ id: recurring.id, patch: toPayload(values) });
-        toast.show('บันทึกรายการประจำแล้ว');
+        toast.show(t('recurring.saved'));
       } else {
         await createRecurring.mutateAsync(toPayload(values));
-        toast.show('สร้างรายการประจำแล้ว');
+        toast.show(t('recurring.created'));
       }
       onDone();
     } catch (error) {
@@ -132,23 +134,31 @@ function RecurringForm({
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <SelectField
-          label="ประเภท"
+          label={t('common.type')}
           {...register('type', { onChange: () => setValue('categoryId', '') })}
         >
-          <option value="expense">รายจ่าย</option>
-          <option value="income">รายรับ</option>
+          <option value="expense">{t('common.expense')}</option>
+          <option value="income">{t('common.income')}</option>
         </SelectField>
-        <SelectField label="ความถี่" error={errors.frequency?.message} {...register('frequency')}>
+        <SelectField
+          label={t('recurring.frequency')}
+          error={errors.frequency?.message}
+          {...register('frequency')}
+        >
           {RECURRING_FREQUENCIES.map((frequency) => (
             <option key={frequency} value={frequency}>
-              {FREQUENCY_LABELS[frequency]}
+              {frequencyLabel(frequency)}
             </option>
           ))}
         </SelectField>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <SelectField label="กระเป๋า" error={errors.walletId?.message} {...register('walletId')}>
-          <option value="">— เลือก —</option>
+        <SelectField
+          label={t('common.wallet')}
+          error={errors.walletId?.message}
+          {...register('walletId')}
+        >
+          <option value="">{t('common.select')}</option>
           {walletOptions.map((wallet) => (
             <option key={wallet.id} value={wallet.id}>
               {wallet.name} ({wallet.currencyCode}){wallet.isArchived ? ' · archived' : ''}
@@ -156,11 +166,11 @@ function RecurringForm({
           ))}
         </SelectField>
         <SelectField
-          label="หมวดหมู่"
+          label={t('common.category')}
           error={errors.categoryId?.message}
           {...register('categoryId')}
         >
-          <option value="">— เลือก —</option>
+          <option value="">{t('common.select')}</option>
           {categoryOptions.map((category) => (
             <option key={category.id} value={category.id}>
               {category.depth ? '　└ ' : ''}
@@ -170,30 +180,30 @@ function RecurringForm({
         </SelectField>
       </div>
       <InputField
-        label="จำนวนเงิน"
+        label={t('common.amount')}
         inputMode="decimal"
         error={errors.amount?.message}
         {...register('amount', { setValueAs: (v: string) => v.replace(/[,\s]/g, '') })}
       />
-      <InputField label="บันทึก" error={errors.note?.message} {...register('note')} />
+      <InputField label={t('common.note')} error={errors.note?.message} {...register('note')} />
       <div className="grid gap-4 sm:grid-cols-2">
         <InputField
-          label={recurring ? 'รอบถัดไป' : 'เริ่มวันที่'}
+          label={recurring ? t('recurring.nextRunLabel') : t('recurring.startDate')}
           type="date"
           min={today}
-          hint="รายเดือน/รายปีเลือกได้วันที่ 1-28"
+          hint={t('recurring.startHint')}
           error={errors.nextRunDate?.message}
           {...register('nextRunDate')}
         />
         <InputField
-          label="สิ้นสุดวันที่ (ไม่บังคับ)"
+          label={t('recurring.endDate')}
           type="date"
           error={errors.endDate?.message}
           {...register('endDate')}
         />
       </div>
       <Button type="submit" loading={isSubmitting} className="w-full">
-        {recurring ? 'บันทึก' : 'สร้างรายการประจำ'}
+        {recurring ? t('common.save') : t('recurring.create')}
       </Button>
     </form>
   );
@@ -208,11 +218,12 @@ export function RecurringFormModal({
   recurring: RecurringDto | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={recurring ? 'แก้ไขรายการประจำ' : 'เพิ่มรายการประจำ'}
+      title={recurring ? t('recurring.editTitle') : t('recurring.newTitle')}
     >
       <RecurringForm recurring={recurring} onDone={onClose} />
     </Modal>
