@@ -138,6 +138,7 @@ Errors: `400`, `409` (email ซ้ำ)
   "displayName": "สมชาย",
   "defaultCurrency": "THB",
   "timezone": "Asia/Bangkok",
+  "locale": "th",
   "createdAt": "2026-09-30T08:00:00.000Z"
 }
 ```
@@ -192,8 +193,15 @@ Errors: `401` (ไม่มี cookie / ไม่พบ / หมดอายุ 
 
 ```json
 // request (ทุก field optional แต่ต้องมีอย่างน้อย 1)
-{ "displayName": "สมชาย ใจดี", "defaultCurrency": "USD", "timezone": "Asia/Vientiane" }
+{
+  "displayName": "สมชาย ใจดี",
+  "defaultCurrency": "USD",
+  "timezone": "Asia/Vientiane",
+  "locale": "lo"
+}
 ```
+
+`locale` (`th` | `en` | `lo`) คือภาษาของหน้าเว็บที่ผูกกับบัญชี web จะใช้ค่านี้หลัง login ทุกเครื่อง และใช้กับชื่อหมวดของระบบในไฟล์ CSV ด้วย ส่วน `POST /auth/register` รับ `locale` ได้ (ไม่บังคับ ค่าเริ่มต้นคือ `th`)
 
 - `timezone` ต้องเป็น IANA timezone ที่ถูกต้อง (ตรวจด้วย `Intl.DateTimeFormat`)
 
@@ -316,6 +324,7 @@ Errors: `404`, `409` ("กระเป๋านี้มีรายการแ
   "color": "#F97316",
   "parentId": null,
   "isSystem": true,
+  "systemKey": "food",
   "children": [
     {
       "id": "6",
@@ -325,6 +334,7 @@ Errors: `404`, `409` ("กระเป๋านี้มีรายการแ
       "color": "#92400E",
       "parentId": "5",
       "isSystem": true,
+      "systemKey": "coffee",
       "children": []
     }
   ]

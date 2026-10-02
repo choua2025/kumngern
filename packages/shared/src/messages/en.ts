@@ -8,6 +8,23 @@
  * "validation.tooLong?max=255" (see msg() in ./index.ts).
  */
 export const serverMessagesEn = {
+  /** Names of the system categories by system_key (prisma/reference-data.ts). */
+  systemCategories: {
+    salary: 'Salary',
+    freelance: 'Freelance',
+    gift: 'Gifts',
+    incomeOther: 'Other income',
+    food: 'Food',
+    coffee: 'Coffee',
+    travel: 'Transport',
+    housing: 'Housing',
+    bills: 'Bills & utilities',
+    shopping: 'Shopping',
+    health: 'Health',
+    entertainment: 'Entertainment',
+    education: 'Education',
+    expenseOther: 'Other expenses',
+  },
   validation: {
     invalidInput: 'Invalid input',
     atLeastOneField: 'Provide at least one field to update',

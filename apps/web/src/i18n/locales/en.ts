@@ -6,6 +6,7 @@ import { serverMessagesEn } from '@income-expenses/shared';
  * so English sentences are phrased to work with any count.
  */
 export const en = {
+  systemCategories: { ...serverMessagesEn.systemCategories },
   common: {
     save: 'Save',
     cancel: 'Cancel',

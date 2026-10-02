@@ -23,6 +23,7 @@ import { ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from '../../lib/date';
 import { translateMessage } from '../../i18n/use-message';
+import { categoryName } from '../../lib/category-name';
 import { applyApiErrors } from '../../lib/form-errors';
 import { useCurrentUser } from '../auth/auth-context';
 import { AttachmentsSection } from './AttachmentsSection';
@@ -214,7 +215,7 @@ function Body({
             {categoryOptions.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.depth ? '　└ ' : ''}
-                {category.name}
+                {categoryName(category)}
               </option>
             ))}
           </SelectField>

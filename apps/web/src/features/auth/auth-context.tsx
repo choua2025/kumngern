@@ -11,6 +11,7 @@ import {
 } from 'react';
 import * as authApi from '../../api/auth';
 import { refreshAccessToken, setSessionExpiredHandler } from '../../api/client';
+import { currentLocale, isLocale, setLocale } from '../../i18n';
 
 type AuthState =
   | { status: 'loading'; user: null }
@@ -59,6 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [becomeAnonymous]);
 
+  // The language saved on the ACCOUNT follows the user to every device: apply it whenever
+  // a (different) user arrives. Runs only when user.locale changes — switching the language
+  // in Settings saves first, so this never fights a choice the user just made.
+  const accountLocale = state.user?.locale;
+  useEffect(() => {
+    if (isLocale(accountLocale) && accountLocale !== currentLocale()) {
+      void setLocale(accountLocale);
+    }
+  }, [accountLocale]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       state,
@@ -67,7 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState({ status: 'authenticated', user });
       },
       register: async (input) => {
-        const user = await authApi.register(input);
+        // Keep the language the visitor was already using.
+        const user = await authApi.register({ ...input, locale: currentLocale() });
         setState({ status: 'authenticated', user });
       },
       logout: async () => {

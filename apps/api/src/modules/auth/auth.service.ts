@@ -78,6 +78,7 @@ export function createAuthService({
             passwordHash,
             displayName: input.displayName,
             defaultCurrency: input.defaultCurrency,
+            locale: input.locale,
           },
           tx,
         );

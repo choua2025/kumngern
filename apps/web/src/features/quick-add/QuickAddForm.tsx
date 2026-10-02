@@ -15,6 +15,7 @@ import { flattenCategories } from '../../api/categories';
 import { Button } from '../../components/Button';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { InputField, SelectField } from '../../components/Field';
+import { categoryName } from '../../lib/category-name';
 import { cn } from '../../lib/cn';
 import { translateMessage } from '../../i18n/use-message';
 import { applyApiErrors } from '../../lib/form-errors';
@@ -174,7 +175,7 @@ export function QuickAddForm({
               )}
             >
               <CategoryIcon icon={category.icon} color={category.color} size="sm" />
-              <span className="line-clamp-1">{category.name}</span>
+              <span className="line-clamp-1">{categoryName(category)}</span>
             </button>
           ))}
         </div>

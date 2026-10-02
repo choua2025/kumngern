@@ -38,6 +38,7 @@ export interface MonthTotalsRow {
 export interface CategoryTotalRow {
   categoryId: bigint;
   name: string;
+  systemKey: string | null;
   icon: string | null;
   color: string | null;
   total: Prisma.Decimal;
@@ -97,12 +98,13 @@ export const reportsRepository = {
       {
         category_id: bigint;
         name: string;
+        system_key: string | null;
         icon: string | null;
         color: string | null;
         total: string;
       }[]
     >`
-      SELECT root.category_id, root.name, root.icon, root.color, SUM(t.amount) AS total
+      SELECT root.category_id, root.name, root.system_key, root.icon, root.color, SUM(t.amount) AS total
       FROM transactions t
       JOIN wallets w       ON w.wallet_id = t.wallet_id
       JOIN categories c    ON c.category_id = t.category_id
@@ -110,12 +112,13 @@ export const reportsRepository = {
       WHERE ${scopeFilter(scope)}
         AND t.type = ${type}
         AND ${occurredBetween(scope, fromDate, toDate)}
-      GROUP BY root.category_id, root.name, root.icon, root.color
+      GROUP BY root.category_id, root.name, root.system_key, root.icon, root.color
       ORDER BY total DESC, root.category_id`;
 
     return rows.map((row) => ({
       categoryId: row.category_id,
       name: row.name,
+      systemKey: row.system_key,
       icon: row.icon,
       color: row.color,
       total: new Prisma.Decimal(row.total),

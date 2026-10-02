@@ -21,6 +21,7 @@ import { InputField, SelectField } from '../../components/Field';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/toast';
 import { todayIn } from '../../lib/date';
+import { categoryName } from '../../lib/category-name';
 import { applyApiErrors } from '../../lib/form-errors';
 import { useCurrentUser } from '../auth/auth-context';
 import { frequencyLabel } from './labels';
@@ -178,7 +179,7 @@ function RecurringForm({
           {categoryOptions.map((category) => (
             <option key={category.id} value={category.id}>
               {category.depth ? '　└ ' : ''}
-              {category.name}
+              {categoryName(category)}
             </option>
           ))}
         </SelectField>

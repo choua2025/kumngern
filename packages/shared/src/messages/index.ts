@@ -1,4 +1,7 @@
+import type { Locale } from '../constants.js';
 import { type ServerMessages, serverMessagesEn } from './en.js';
+import { serverMessagesLo } from './lo.js';
+import { serverMessagesTh } from './th.js';
 
 export { type ServerMessages, serverMessagesEn } from './en.js';
 export { serverMessagesLo } from './lo.js';
@@ -13,6 +16,24 @@ export type MessageKey = Leaves<ServerMessages>;
 export type ValidationKey = Extract<MessageKey, `validation.${string}`>;
 export type ErrorKey = Extract<MessageKey, `errors.${string}`>;
 export type MessageParams = Record<string, string | number>;
+
+/** The catalog for a UI language — for server-rendered text such as the CSV export. */
+export const serverMessagesByLocale: Record<Locale, ServerMessages> = {
+  en: serverMessagesEn,
+  th: serverMessagesTh,
+  lo: serverMessagesLo,
+};
+
+/** Display name of a category: the translated name of a SYSTEM category, else its own name. */
+export function categoryDisplayName(
+  category: { name: string; systemKey: string | null },
+  catalog: ServerMessages,
+): string {
+  if (!category.systemKey) return category.name;
+  const ref = `systemCategories.${category.systemKey}`;
+  const translated = formatMessage(ref, catalog);
+  return translated === ref ? category.name : translated;
+}
 
 /**
  * A message reference as ONE string, so it fits wherever Zod and the API expect a

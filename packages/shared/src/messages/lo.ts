@@ -2,6 +2,22 @@ import type { ServerMessages } from './en.js';
 
 /** Lao — written by a non-native speaker (AI); needs a native review. */
 export const serverMessagesLo = {
+  systemCategories: {
+    salary: 'ເງິນເດືອນ',
+    freelance: 'ຟຣີແລນ',
+    gift: 'ຂອງຂວັນ',
+    incomeOther: 'ລາຍຮັບອື່ນໆ',
+    food: 'ອາຫານ',
+    coffee: 'ກາເຟ',
+    travel: 'ການເດີນທາງ',
+    housing: 'ທີ່ພັກ',
+    bills: 'ຄ່ານ້ຳ ຄ່າໄຟ',
+    shopping: 'ຊື້ເຄື່ອງ',
+    health: 'ສຸຂະພາບ',
+    entertainment: 'ບັນເທີງ',
+    education: 'ການສຶກສາ',
+    expenseOther: 'ລາຍຈ່າຍອື່ນໆ',
+  },
   validation: {
     invalidInput: 'ຂໍ້ມູນບໍ່ຖືກຕ້ອງ',
     atLeastOneField: 'ຕ້ອງລະບຸຢ່າງໜ້ອຍ 1 ຊ່ອງທີ່ຈະແກ້ໄຂ',

@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Money } from '../../components/Money';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
+import { categoryName } from '../../lib/category-name';
 import { cn } from '../../lib/cn';
 import { formatLocalDate, frequencyLabel } from './labels';
 import { RecurringFormModal } from './RecurringFormModal';
@@ -40,7 +41,7 @@ function ActiveSwitch({ recurring }: { recurring: RecurringDto }) {
       type="button"
       role="switch"
       aria-checked={recurring.isActive}
-      aria-label={`${label}: ${recurring.note ?? recurring.category.name}`}
+      aria-label={`${label}: ${recurring.note ?? categoryName(recurring.category)}`}
       title={label}
       disabled={update.isPending}
       onClick={() => void toggle()}
@@ -112,7 +113,7 @@ export function RecurringPage() {
               >
                 <CategoryIcon icon={item.category.icon} color={item.category.color} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{item.note ?? item.category.name}</p>
+                  <p className="truncate font-medium">{item.note ?? categoryName(item.category)}</p>
                   <p className="truncate text-sm text-slate-500">
                     {frequencyLabel(item.frequency)} · {item.wallet.name}
                     {' · '}
@@ -135,7 +136,9 @@ export function RecurringPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setEditing(item)}
-                  aria-label={t('common.editItem', { name: item.note ?? item.category.name })}
+                  aria-label={t('common.editItem', {
+                    name: item.note ?? categoryName(item.category),
+                  })}
                 >
                   <Pencil className="size-4" aria-hidden />
                 </Button>
@@ -143,7 +146,9 @@ export function RecurringPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setDeleting(item)}
-                  aria-label={t('common.deleteItem', { name: item.note ?? item.category.name })}
+                  aria-label={t('common.deleteItem', {
+                    name: item.note ?? categoryName(item.category),
+                  })}
                 >
                   <Trash2 className="size-4" aria-hidden />
                 </Button>
@@ -163,7 +168,7 @@ export function RecurringPage() {
         open={deleting !== null}
         title={t('recurring.deleteTitle')}
         message={t('recurring.deleteMessage', {
-          name: deleting?.note ?? deleting?.category.name ?? '',
+          name: deleting ? (deleting.note ?? categoryName(deleting.category)) : '',
         })}
         loading={deleteRecurring.isPending}
         onConfirm={() => void confirmDelete()}

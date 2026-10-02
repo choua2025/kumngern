@@ -1,6 +1,7 @@
 import type {
   AccessTokenResponse,
   ChangePasswordInput,
+  Locale,
   UpdateProfileInput,
   UserDto,
 } from '@income-expenses/shared';
@@ -15,6 +16,11 @@ export function useUpdateProfile() {
     // Default currency and timezone change every report and budget figure.
     onSuccess: () => queryClient.invalidateQueries(),
   });
+}
+
+/** Saves the UI language on the account (no refetch: language does not change any data). */
+export async function saveLocale(locale: Locale): Promise<UserDto> {
+  return (await api.patch<{ data: UserDto }>('/users/me', { locale })).data.data;
 }
 
 export function useChangePassword() {

@@ -1,6 +1,22 @@
 import type { ServerMessages } from './en.js';
 
 export const serverMessagesTh = {
+  systemCategories: {
+    salary: 'เงินเดือน',
+    freelance: 'ฟรีแลนซ์',
+    gift: 'ของขวัญ',
+    incomeOther: 'อื่นๆ',
+    food: 'อาหาร',
+    coffee: 'กาแฟ',
+    travel: 'เดินทาง',
+    housing: 'ที่พัก',
+    bills: 'บิล/ค่าน้ำไฟ',
+    shopping: 'ช้อปปิ้ง',
+    health: 'สุขภาพ',
+    entertainment: 'บันเทิง',
+    education: 'การศึกษา',
+    expenseOther: 'อื่นๆ',
+  },
   validation: {
     invalidInput: 'ข้อมูลไม่ถูกต้อง',
     atLeastOneField: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',

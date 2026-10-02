@@ -35,6 +35,7 @@ export function toRecurringDto(row: RecurringRow): RecurringDto {
     category: {
       id: row.category.id.toString(),
       name: row.category.name,
+      systemKey: row.category.systemKey,
       icon: row.category.icon,
       color: row.category.color,
       parentId: row.category.parentId?.toString() ?? null,

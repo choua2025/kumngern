@@ -7,6 +7,7 @@ import type { Messages } from './en';
  * ໝວດໝູ່ (category), ງົບປະມານ (budget), ລາຍຮັບ / ລາຍຈ່າຍ (income / expense).
  */
 export const lo = {
+  systemCategories: { ...serverMessagesLo.systemCategories },
   common: {
     save: 'ບັນທຶກ',
     cancel: 'ຍົກເລີກ',

@@ -5,6 +5,14 @@
 
 export const API_PREFIX = '/api/v1';
 
+/** UI languages (chk_users_locale). Thai is the default. */
+export const LOCALES = ['th', 'en', 'lo'] as const;
+export type Locale = (typeof LOCALES)[number];
+export const DEFAULT_LOCALE: Locale = 'th';
+export function isLocale(value: unknown): value is Locale {
+  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
+}
+
 export const WALLET_TYPES = ['cash', 'bank', 'ewallet', 'credit_card', 'saving'] as const;
 export type WalletType = (typeof WALLET_TYPES)[number];
 

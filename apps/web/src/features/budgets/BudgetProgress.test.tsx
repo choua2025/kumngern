@@ -8,7 +8,15 @@ function budget(overrides: Partial<BudgetDto>): BudgetDto {
   return {
     id: '1',
     month: '2026-09',
-    category: { id: '10', name: 'อาหาร', icon: 'utensils', color: '#F97316', parentId: null },
+    // A system category: the name shown comes from systemKey in the UI language.
+    category: {
+      id: '10',
+      name: 'อาหาร',
+      systemKey: 'food',
+      icon: 'utensils',
+      color: '#F97316',
+      parentId: null,
+    },
     limitAmount: '6000.00',
     alertPercent: 80,
     spent: '0.00',

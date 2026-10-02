@@ -1,4 +1,4 @@
-import type { UserDto } from '@income-expenses/shared';
+import { DEFAULT_LOCALE, isLocale, type UserDto } from '@income-expenses/shared';
 import type { User } from '../../generated/prisma/client.js';
 
 /**
@@ -12,6 +12,7 @@ export function toUserDto(user: User): UserDto {
     displayName: user.displayName,
     defaultCurrency: user.defaultCurrency,
     timezone: user.timezone,
+    locale: isLocale(user.locale) ? user.locale : DEFAULT_LOCALE,
     createdAt: user.createdAt.toISOString(),
   };
 }

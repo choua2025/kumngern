@@ -2,6 +2,7 @@ import type {
   BudgetStatus,
   CategoryType,
   ErrorCode,
+  Locale,
   RecurringFrequency,
   TransactionType,
   WalletType,
@@ -46,6 +47,7 @@ export interface UserDto {
   displayName: string;
   defaultCurrency: string;
   timezone: string;
+  locale: Locale;
   createdAt: string;
 }
 
@@ -85,6 +87,8 @@ export interface CategoryDto {
   color: string | null;
   parentId: string | null;
   isSystem: boolean;
+  /** Stable id of a system category ("food") — clients translate its name. null for own ones. */
+  systemKey: string | null;
   children: CategoryDto[];
 }
 
@@ -97,6 +101,8 @@ export interface WalletRefDto {
 export interface CategoryRefDto {
   id: string;
   name: string;
+  /** See CategoryDto.systemKey. */
+  systemKey: string | null;
   icon: string | null;
   color: string | null;
   parentId: string | null;
