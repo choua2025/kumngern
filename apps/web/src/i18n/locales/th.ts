@@ -1,3 +1,4 @@
+import { serverMessagesTh } from '@income-expenses/shared';
 import type { Messages } from './en';
 
 export const th = {
@@ -76,22 +77,19 @@ export const th = {
     tagline: 'รู้ว่าเงินไปไหน ทุกกระเป๋าในที่เดียว',
     checking: 'กำลังตรวจสอบการเข้าสู่ระบบ',
   },
+  // Messages that also come from the API / shared Zod schemas live in packages/shared.
   validation: {
+    ...serverMessagesTh.validation,
     selectWallet: 'กรุณาเลือกกระเป๋า',
     selectTargetWallet: 'กรุณาเลือกกระเป๋าปลายทาง',
     selectCategory: 'กรุณาเลือกหมวดหมู่',
     enterDateTime: 'กรุณาระบุวันเวลา',
     sameWallet: 'ต้องไม่ใช่กระเป๋าเดียวกับต้นทาง',
-    maxTags: 'แท็กได้สูงสุด 10 แท็ก',
-    tooLong: 'ยาวเกินไป (สูงสุด {{max}} ตัวอักษร)',
-    noteTooLong: 'ยาวเกินไป (สูงสุด 255 ตัวอักษร)',
     invalidName: 'ชื่อไม่ถูกต้อง',
-    enterCurrentPassword: 'กรุณากรอกรหัสผ่านปัจจุบัน',
     passwordMismatch: 'รหัสผ่านยืนยันไม่ตรงกัน',
-    samePassword: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
-    dateRange: 'วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด',
   },
   errors: {
+    ...serverMessagesTh.errors,
     network: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ต',
     generic: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
     unexpected: 'เกิดข้อผิดพลาดที่ไม่คาดคิด',

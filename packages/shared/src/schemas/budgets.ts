@@ -1,17 +1,18 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import { BUDGET_DEFAULT_ALERT_PERCENT } from '../constants.js';
 import { idSchema, positiveMoneySchema } from './primitives.js';
 
 /** "YYYY-MM" — a calendar month in the user's timezone. */
 export const monthSchema = z
-  .string({ error: 'กรุณาระบุเดือน' })
-  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'เดือนต้องเป็นรูปแบบ YYYY-MM');
+  .string({ error: msg('validation.monthRequired') })
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, msg('validation.monthInvalid'));
 
 const alertPercentSchema = z.coerce
-  .number({ error: 'เปอร์เซ็นต์แจ้งเตือนต้องเป็นตัวเลข' })
-  .int('เปอร์เซ็นต์แจ้งเตือนต้องเป็นจำนวนเต็ม')
-  .min(1, 'เปอร์เซ็นต์แจ้งเตือนต้องอยู่ระหว่าง 1-100')
-  .max(100, 'เปอร์เซ็นต์แจ้งเตือนต้องอยู่ระหว่าง 1-100');
+  .number({ error: msg('validation.alertPercentNumber') })
+  .int(msg('validation.alertPercentInteger'))
+  .min(1, msg('validation.alertPercentRange'))
+  .max(100, msg('validation.alertPercentRange'));
 
 export const createBudgetSchema = z.object({
   categoryId: idSchema,
@@ -28,7 +29,7 @@ export const updateBudgetSchema = z
     alertPercent: alertPercentSchema.optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateBudgetData = z.output<typeof updateBudgetSchema>;
 

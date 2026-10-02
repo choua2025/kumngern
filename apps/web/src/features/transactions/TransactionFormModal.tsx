@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   type CategoryDto,
   idSchema,
+  msg,
   optionalText,
   positiveMoneySchema,
   type TransactionDto,
@@ -36,7 +37,7 @@ const formSchema = z
     toAmount: z.string(),
     note: optionalText(255),
     occurredAtLocal: z.string().min(1, 'validation.enterDateTime'),
-    tagIds: z.array(z.string()).max(10, 'validation.maxTags'),
+    tagIds: z.array(z.string()).max(10, msg('validation.maxTags', { max: 10 })),
   })
   .superRefine((value, ctx) => {
     if (value.type === 'transfer') {

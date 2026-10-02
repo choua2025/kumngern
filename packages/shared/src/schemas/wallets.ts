@@ -1,15 +1,16 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import { WALLET_TYPES } from '../constants.js';
 import { currencyCodeSchema } from './common.js';
 import { signedMoneySchema } from './primitives.js';
 
 const walletNameSchema = z
-  .string({ error: 'กรุณากรอกชื่อกระเป๋า' })
+  .string({ error: msg('validation.walletNameRequired') })
   .trim()
-  .min(1, 'กรุณากรอกชื่อกระเป๋า')
-  .max(100, 'ชื่อยาวเกินไป (สูงสุด 100 ตัวอักษร)');
+  .min(1, msg('validation.walletNameRequired'))
+  .max(100, msg('validation.nameTooLong', { max: 100 }));
 
-const walletTypeSchema = z.enum(WALLET_TYPES, { error: 'ประเภทกระเป๋าไม่ถูกต้อง' });
+const walletTypeSchema = z.enum(WALLET_TYPES, { error: msg('validation.walletTypeInvalid') });
 
 export const createWalletSchema = z.object({
   name: walletNameSchema,
@@ -30,7 +31,7 @@ export const updateWalletSchema = z
     isArchived: z.boolean().optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateWalletInput = z.infer<typeof updateWalletSchema>;
 

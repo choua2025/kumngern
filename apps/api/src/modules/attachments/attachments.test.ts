@@ -170,7 +170,7 @@ describe('upload validation', () => {
     ]);
 
     expect(res.status).toBe(400);
-    expect(res.body.error.message).toMatch(/ไม่รองรับ/);
+    expect(res.body.error.key).toBe('errors.fileTypeUnsupported?name=x.jpg');
     expect(await filesOnDisk(alice.id)).toEqual(before);
   });
 

@@ -3,6 +3,7 @@ import {
   type CreateRecurringInput,
   idSchema,
   localDateSchema,
+  msg,
   positiveMoneySchema,
   RECURRING_FREQUENCIES,
   type RecurringDto,
@@ -34,7 +35,10 @@ const formSchema = z
     walletId: z.string().min(1, 'validation.selectWallet').pipe(idSchema),
     categoryId: z.string().min(1, 'validation.selectCategory').pipe(idSchema),
     amount: positiveMoneySchema,
-    note: z.string().trim().max(255, 'validation.noteTooLong'),
+    note: z
+      .string()
+      .trim()
+      .max(255, msg('validation.tooLong', { max: 255 })),
     frequency: z.enum(RECURRING_FREQUENCIES),
     nextRunDate: localDateSchema,
     endDate: z.union([z.literal(''), localDateSchema]),

@@ -2,8 +2,8 @@ import type { TagRefDto } from '@income-expenses/shared';
 import { errors } from '../../lib/errors.js';
 import { type TagsRepository, tagsRepository } from './tags.repository.js';
 
-const TAG_NOT_FOUND = 'ไม่พบแท็ก';
-const DUPLICATE = 'มีแท็กชื่อนี้อยู่แล้ว';
+const TAG_NOT_FOUND = 'errors.tagNotFound';
+const DUPLICATE = 'errors.tagDuplicate';
 
 const toTagDto = (tag: { id: bigint; name: string }): TagRefDto => ({
   id: tag.id.toString(),

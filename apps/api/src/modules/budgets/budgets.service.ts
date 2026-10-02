@@ -6,7 +6,7 @@ import type {
   UpdateBudgetData,
 } from '@income-expenses/shared';
 import { runInTransaction, type TransactionRunner } from '../../lib/db.js';
-import { errors } from '../../lib/errors.js';
+import { detail, errors } from '../../lib/errors.js';
 import { toDecimal, toMoneyString } from '../../lib/money.js';
 import { addMonths, firstDayOf, monthOf, monthToDate } from '../../lib/month.js';
 import {
@@ -20,7 +20,7 @@ import {
   budgetsRepository,
 } from './budgets.repository.js';
 
-const BUDGET_NOT_FOUND = 'ไม่พบงบประมาณ';
+const BUDGET_NOT_FOUND = 'errors.budgetNotFound';
 
 export function toBudgetDto(budget: BudgetWithSpent): BudgetDto {
   const { remaining, usedPercent, status } = evaluateBudget(
@@ -73,16 +73,14 @@ export function createBudgetsService({ budgets, categories, transaction }: Budge
       const categoryId = BigInt(input.categoryId);
       const category = await categories.findVisibleById(userId, categoryId);
       if (!category) {
-        throw errors.notFound('ไม่พบหมวดหมู่');
+        throw errors.notFound('errors.categoryNotFound');
       }
       if (category.type !== 'expense') {
-        throw errors.validation(undefined, [
-          { path: 'categoryId', message: 'ตั้งงบได้เฉพาะหมวดรายจ่าย' },
-        ]);
+        throw errors.validation(undefined, [detail('categoryId', 'validation.budgetExpenseOnly')]);
       }
       const month = monthToDate(input.month);
       if (await budgets.findByCategoryAndMonth(userId, categoryId, month)) {
-        throw errors.conflict('หมวดนี้มีงบของเดือนนี้อยู่แล้ว');
+        throw errors.conflict('errors.budgetDuplicate');
       }
       // A concurrent duplicate still hits uq_budgets_user_category_month → 409.
       const budgetId = await budgets.create({

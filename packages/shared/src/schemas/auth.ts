@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import {
   currencyCodeSchema,
   displayNameSchema,
@@ -20,7 +21,9 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string({ error: 'กรุณากรอกรหัสผ่าน' }).min(1, 'กรุณากรอกรหัสผ่าน'),
+  password: z
+    .string({ error: msg('validation.passwordRequired') })
+    .min(1, msg('validation.passwordRequired')),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -31,19 +34,19 @@ export const updateProfileSchema = z
     timezone: timezoneSchema.optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const changePasswordSchema = z
   .object({
     currentPassword: z
-      .string({ error: 'กรุณากรอกรหัสผ่านปัจจุบัน' })
-      .min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
+      .string({ error: msg('validation.currentPasswordRequired') })
+      .min(1, msg('validation.currentPasswordRequired')),
     newPassword: passwordSchema,
   })
   .refine((value) => value.currentPassword !== value.newPassword, {
-    message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
+    message: msg('validation.samePassword'),
     path: ['newPassword'],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

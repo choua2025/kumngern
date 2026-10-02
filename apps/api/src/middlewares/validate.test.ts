@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { msg } from '@income-expenses/shared';
 import { z } from 'zod';
 import { asyncHandler } from '../lib/async-handler.js';
 import { errors } from '../lib/errors.js';
@@ -10,7 +11,9 @@ import { type ValidatedRequest, validate } from './validate.js';
 const schemas = {
   params: z.object({ id: z.coerce.number().int().positive() }),
   query: z.object({ page: z.coerce.number().int().min(1).default(1) }),
-  body: z.object({ amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'รูปแบบจำนวนเงินไม่ถูกต้อง') }),
+  body: z.object({
+    amount: z.string().regex(/^\d+(\.\d{1,2})?$/, msg('validation.amountInvalid')),
+  }),
 };
 
 const router = Router();
@@ -27,7 +30,7 @@ router.get(
   '/boom',
   asyncHandler(async () => {
     await Promise.resolve();
-    throw errors.conflict('ข้อมูลซ้ำ');
+    throw errors.conflict('errors.duplicate');
   }),
 );
 router.get(
@@ -63,8 +66,27 @@ describe('asyncHandler + errorHandler', () => {
     const res = await request(app).get('/boom');
 
     expect(res.status).toBe(409);
+    // English text for any client + the key the web translates (i18n).
     expect(res.body).toEqual({
-      error: { code: 'CONFLICT', message: 'ข้อมูลซ้ำ', requestId: expect.any(String) as unknown },
+      error: {
+        code: 'CONFLICT',
+        key: 'errors.duplicate',
+        message: 'This already exists',
+        requestId: expect.any(String) as unknown,
+      },
+    });
+  });
+
+  it('sends field messages as English text plus a translatable key', async () => {
+    const res = await request(app).post('/items/abc?page=0').send({ amount: '1.234' });
+
+    const amount = (
+      res.body.error.details as { path: string; message: string; key?: string }[]
+    ).find((d) => d.path === 'amount');
+    expect(amount).toEqual({
+      path: 'amount',
+      message: 'Invalid amount (max 2 decimal places)',
+      key: 'validation.amountInvalid',
     });
   });
 

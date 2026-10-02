@@ -22,12 +22,18 @@ export interface ApiSuccess<T> {
 
 export interface ApiErrorDetail {
   path: string;
+  /** English text. */
   message: string;
+  /** Message reference to translate, e.g. "validation.tooLong?max=255". */
+  key?: string;
 }
 
 export interface ApiErrorBody {
   error: {
     code: ErrorCode;
+    /** Message reference to translate, e.g. "errors.walletNotFound" (absent for plain text). */
+    key?: string;
+    /** English text, for clients that do not translate. */
     message: string;
     details?: ApiErrorDetail[];
     requestId?: string;
