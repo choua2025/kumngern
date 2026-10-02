@@ -97,6 +97,7 @@ describe('POST /auth/register', () => {
       displayName: 'สมชาย',
       defaultCurrency: 'THB',
       timezone: 'Asia/Bangkok',
+      locale: 'th',
       createdAt: expect.any(String) as unknown,
     });
     expect(JSON.stringify(res.body)).not.toMatch(/password/i);

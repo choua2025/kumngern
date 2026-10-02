@@ -34,6 +34,7 @@ export function toBudgetDto(budget: BudgetWithSpent): BudgetDto {
     category: {
       id: budget.category.id.toString(),
       name: budget.category.name,
+      systemKey: budget.category.systemKey,
       icon: budget.category.icon,
       color: budget.category.color,
       parentId: budget.category.parentId?.toString() ?? null,

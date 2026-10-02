@@ -24,6 +24,7 @@ function toCategoryDto(row: CategoryRow): CategoryDto {
     color: row.color,
     parentId: row.parentId?.toString() ?? null,
     isSystem: row.userId === null,
+    systemKey: row.systemKey,
     children: [],
   };
 }

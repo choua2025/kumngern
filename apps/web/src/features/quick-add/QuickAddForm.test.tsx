@@ -43,6 +43,7 @@ const category = (
   color: null,
   parentId: null,
   isSystem: true,
+  systemKey: null,
   children,
 });
 

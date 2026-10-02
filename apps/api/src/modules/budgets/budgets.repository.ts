@@ -12,6 +12,7 @@ export interface BudgetWithSpent {
   category: {
     id: bigint;
     name: string;
+    systemKey: string | null;
     icon: string | null;
     color: string | null;
     parentId: bigint | null;
@@ -27,6 +28,7 @@ interface BudgetRow {
   default_currency: string;
   category_id: bigint;
   category_name: string;
+  system_key: string | null;
   icon: string | null;
   color: string | null;
   parent_id: bigint | null;
@@ -54,7 +56,7 @@ export const budgetsRepository = {
     const rows = await db.$queryRaw<BudgetRow[]>`
       SELECT b.budget_id, b.month, b.limit_amount, b.alert_percent,
              u.default_currency,
-             c.category_id, c.name AS category_name, c.icon, c.color, c.parent_id,
+             c.category_id, c.name AS category_name, c.system_key, c.icon, c.color, c.parent_id,
              s.spent
       FROM budgets b
       JOIN users u ON u.user_id = b.user_id
@@ -86,6 +88,7 @@ export const budgetsRepository = {
       category: {
         id: row.category_id,
         name: row.category_name,
+        systemKey: row.system_key,
         icon: row.icon,
         color: row.color,
         parentId: row.parent_id,

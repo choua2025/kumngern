@@ -2,6 +2,7 @@ import type { TransactionDto } from '@income-expenses/shared';
 import type { ReactNode } from 'react';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { i18n } from '../../i18n';
+import { categoryName } from '../../lib/category-name';
 import { Money } from '../../components/Money';
 import { formatDateTime } from '../../lib/date';
 
@@ -12,7 +13,7 @@ export function transactionTitle(tx: TransactionDto): string {
       to: tx.toWallet?.name ?? '',
     });
   }
-  return tx.category?.name ?? '-';
+  return tx.category ? categoryName(tx.category) : '-';
 }
 
 /** One transaction as a list row (dashboard, mobile list). */

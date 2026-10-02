@@ -27,6 +27,7 @@ import { Money } from '../../components/Money';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
 import { formatDateTime } from '../../lib/date';
+import { categoryName } from '../../lib/category-name';
 import { formatCount } from '../../lib/money';
 import { useCurrentUser } from '../auth/auth-context';
 import { TransactionFormModal } from './TransactionFormModal';
@@ -116,7 +117,7 @@ function Filters() {
           {flattenCategories(categories.data ?? []).map((category) => (
             <option key={category.id} value={category.id}>
               {category.depth ? '　└ ' : ''}
-              {category.name}{' '}
+              {categoryName(category)}{' '}
               {category.depth
                 ? ''
                 : `(${category.type === 'income' ? t('common.incomeShort') : t('common.expenseShort')})`}

@@ -12,6 +12,7 @@ export const TEST_USER: UserDto = {
   displayName: 'Tester',
   defaultCurrency: 'THB',
   timezone: 'Asia/Bangkok',
+  locale: 'th',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 

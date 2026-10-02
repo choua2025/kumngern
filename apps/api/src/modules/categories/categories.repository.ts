@@ -8,6 +8,7 @@ const categorySelect = {
   name: true,
   type: true,
   icon: true,
+  systemKey: true,
   color: true,
 } as const;
 

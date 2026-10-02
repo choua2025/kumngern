@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LOCALES } from '../constants.js';
 import { msg } from '../messages/index.js';
 
 /** bcrypt only uses the first 72 BYTES of a password. A Thai character is 3 bytes in UTF-8. */
@@ -42,6 +43,8 @@ export const currencyCodeSchema = z
   .trim()
   .toUpperCase()
   .regex(/^[A-Z]{3}$/, msg('validation.currencyFormat'));
+
+export const localeSchema = z.enum(LOCALES, { error: msg('validation.localeInvalid') });
 
 export const timezoneSchema = z
   .string({ error: msg('validation.timezoneRequired') })

@@ -10,7 +10,8 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useCurrencies } from '../../api/auth';
-import { useChangePassword, useUpdateProfile } from '../../api/users';
+import { errorMessage } from '../../api/errors';
+import { saveLocale, useChangePassword, useUpdateProfile } from '../../api/users';
 import { Button } from '../../components/Button';
 import { InputField, SelectField } from '../../components/Field';
 import { Card, ErrorState, LoadingRows } from '../../components/states';
@@ -238,6 +239,21 @@ function ThemeSetting() {
   );
 }
 
+/** Changes the UI right away, then saves the choice on the account (all devices). */
+function LanguageSetting() {
+  const { setUser } = useAuth();
+  const toast = useToast();
+  return (
+    <LanguageSwitcher
+      onChange={(locale) => {
+        saveLocale(locale)
+          .then(setUser)
+          .catch((error: unknown) => toast.show(errorMessage(error), { tone: 'error' }));
+      }}
+    />
+  );
+}
+
 export function SettingsPage() {
   const { t } = useTranslation();
   return (
@@ -250,7 +266,7 @@ export function SettingsPage() {
         <PasswordFormCard />
       </Card>
       <Card title={t('language.label')}>
-        <LanguageSwitcher />
+        <LanguageSetting />
       </Card>
       <Card title={t('settings.theme')}>
         <ThemeSetting />

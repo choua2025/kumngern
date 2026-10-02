@@ -4,6 +4,7 @@ import {
   currencyCodeSchema,
   displayNameSchema,
   emailSchema,
+  localeSchema,
   passwordSchema,
   timezoneSchema,
 } from './common.js';
@@ -16,6 +17,8 @@ export const registerSchema = z.object({
   password: passwordSchema,
   displayName: displayNameSchema,
   defaultCurrency: currencyCodeSchema,
+  /** The language the visitor was using while signing up. */
+  locale: localeSchema.optional(),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -32,6 +35,7 @@ export const updateProfileSchema = z
     displayName: displayNameSchema.optional(),
     defaultCurrency: currencyCodeSchema.optional(),
     timezone: timezoneSchema.optional(),
+    locale: localeSchema.optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: msg('validation.atLeastOneField'),

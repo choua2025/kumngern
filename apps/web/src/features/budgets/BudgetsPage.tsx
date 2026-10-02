@@ -10,6 +10,7 @@ import { Money } from '../../components/Money';
 import { MonthPicker } from '../../components/MonthPicker';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
+import { categoryName } from '../../lib/category-name';
 import { currentMonthIn, formatMonthLong } from '../../lib/date';
 import { sumMoney } from '../../lib/money';
 import { useCurrentUser } from '../auth/auth-context';
@@ -46,7 +47,7 @@ export function BudgetsPage() {
     if (!deleting) return;
     try {
       await deleteBudget.mutateAsync(deleting.id);
-      toast.show(t('budgets.deleted', { name: deleting.category.name }));
+      toast.show(t('budgets.deleted', { name: categoryName(deleting.category) }));
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
     } finally {
@@ -121,7 +122,7 @@ export function BudgetsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setEditing(budget)}
-                    aria-label={t('budgets.editItem', { name: budget.category.name })}
+                    aria-label={t('budgets.editItem', { name: categoryName(budget.category) })}
                   >
                     <Pencil className="size-4" aria-hidden />
                   </Button>
@@ -129,7 +130,7 @@ export function BudgetsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleting(budget)}
-                    aria-label={t('budgets.deleteItem', { name: budget.category.name })}
+                    aria-label={t('budgets.deleteItem', { name: categoryName(budget.category) })}
                   >
                     <Trash2 className="size-4" aria-hidden />
                   </Button>
@@ -152,7 +153,7 @@ export function BudgetsPage() {
         open={deleting !== null}
         title={t('budgets.deleteTitle')}
         message={t('budgets.deleteMessage', {
-          name: deleting?.category.name ?? '',
+          name: deleting ? categoryName(deleting.category) : '',
           month: formatMonthLong(month),
         })}
         loading={deleteBudget.isPending}

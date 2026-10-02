@@ -1,4 +1,9 @@
 import {
+  categoryDisplayName,
+  DEFAULT_LOCALE,
+  isLocale,
+  type ServerMessages,
+  serverMessagesByLocale,
   type ExportTransactionsQuery,
   type ListTransactionsQuery,
   MAX_EXPORT_ROWS,
@@ -87,7 +92,7 @@ const CSV_HEADER = [
   'tags',
 ];
 
-function toCsvLine(row: TransactionExportRow, timezone: string): string {
+function toCsvLine(row: TransactionExportRow, timezone: string, catalog: ServerMessages): string {
   const { date, time } = toLocalDateTime(row.occurredAt, timezone);
   return csvRow([
     date,
@@ -95,9 +100,10 @@ function toCsvLine(row: TransactionExportRow, timezone: string): string {
     row.type,
     csvCell(row.wallet.name),
     csvCell(row.toWallet?.name),
-    // A sub-category shows "กาแฟ" with parent "อาหาร"; a root category has no parent.
-    csvCell(row.category?.name),
-    csvCell(row.category?.parent?.name),
+    // A sub-category shows "Coffee" with parent "Food"; a root category has no parent.
+    // System category names follow the user's language (users.locale).
+    csvCell(row.category && categoryDisplayName(row.category, catalog)),
+    csvCell(row.category?.parent && categoryDisplayName(row.category.parent, catalog)),
     csvCell(row.amount.toFixed(2), { numeric: true }),
     csvCell(row.toAmount?.toFixed(2), { numeric: true }),
     row.wallet.currencyCode,
@@ -263,6 +269,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
       }
       // Captured here: TypeScript does not carry the null-check into the generator closure.
       const timezone = user.timezone;
+      const catalog = serverMessagesByLocale[isLocale(user.locale) ? user.locale : DEFAULT_LOCALE];
       const where = buildFilterWhere(userId, query, timezone);
       const orderBy = orderByFor(query.sort);
       const today = toLocalDateTime(new Date(), timezone).date;
@@ -272,7 +279,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
         let written = 0;
         for await (const batch of transactions.streamForExport(where, orderBy)) {
           const rows = batch.slice(0, MAX_EXPORT_ROWS - written);
-          yield rows.map((row) => toCsvLine(row, timezone)).join('');
+          yield rows.map((row) => toCsvLine(row, timezone, catalog)).join('');
           written += rows.length;
           if (written >= MAX_EXPORT_ROWS) return;
         }

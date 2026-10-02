@@ -2,6 +2,7 @@ import { serverMessagesTh } from '@income-expenses/shared';
 import type { Messages } from './en';
 
 export const th = {
+  systemCategories: { ...serverMessagesTh.systemCategories },
   common: {
     save: 'บันทึก',
     cancel: 'ยกเลิก',

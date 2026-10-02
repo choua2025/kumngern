@@ -14,7 +14,9 @@ const recurringSelect = {
   walletId: true,
   categoryId: true,
   wallet: { select: { id: true, name: true, currencyCode: true } },
-  category: { select: { id: true, name: true, icon: true, color: true, parentId: true } },
+  category: {
+    select: { id: true, name: true, systemKey: true, icon: true, color: true, parentId: true },
+  },
 } as const;
 
 export type RecurringRow = Prisma.RecurringTransactionGetPayload<{

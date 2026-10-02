@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, OctagonAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { useFormatMoney } from '../../components/Money';
+import { categoryName } from '../../lib/category-name';
 import { cn } from '../../lib/cn';
 
 /** Status is never colour alone: every state has an icon and a text label too. */
@@ -40,7 +41,7 @@ export function BudgetProgress({ budget }: { budget: BudgetDto }) {
       <div className="flex items-center gap-3">
         <CategoryIcon icon={budget.category.icon} color={budget.category.color} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{budget.category.name}</p>
+          <p className="truncate font-medium">{categoryName(budget.category)}</p>
           <p className="text-sm text-slate-500 tabular-nums dark:text-slate-400">
             {format(budget.spent, budget.currencyCode)} /{' '}
             {format(budget.limitAmount, budget.currencyCode)}
@@ -54,7 +55,7 @@ export function BudgetProgress({ budget }: { budget: BudgetDto }) {
 
       <div
         role="progressbar"
-        aria-label={t('budgets.budgetFor', { name: budget.category.name })}
+        aria-label={t('budgets.budgetFor', { name: categoryName(budget.category) })}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={width}

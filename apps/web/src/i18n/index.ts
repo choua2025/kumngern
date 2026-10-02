@@ -5,18 +5,14 @@ import { en } from './locales/en';
 import { lo } from './locales/lo';
 import { th } from './locales/th';
 
-export const LOCALES = ['th', 'en', 'lo'] as const;
-export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = 'th';
+import { DEFAULT_LOCALE, isLocale, type Locale, LOCALES } from '@income-expenses/shared';
+
+export { DEFAULT_LOCALE, isLocale, type Locale, LOCALES };
 
 /** BCP 47 tags for Intl: dates, numbers and currency follow the UI language. */
 const INTL_LOCALES: Record<Locale, string> = { th: 'th-TH', en: 'en-US', lo: 'lo-LA' };
 
 const STORAGE_KEY = 'locale';
-
-export function isLocale(value: unknown): value is Locale {
-  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
-}
 
 /** Saved choice → the browser's languages ("lo-LA" → lo) → Thai. */
 export function detectLocale(

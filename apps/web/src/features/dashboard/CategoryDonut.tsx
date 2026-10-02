@@ -4,6 +4,7 @@ import Big from 'big.js';
 import { useTranslation } from 'react-i18next';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { i18n } from '../../i18n';
+import { categoryName } from '../../lib/category-name';
 import { useByCategoryReport } from '../../api/reports';
 import { useFormatMoney } from '../../components/Money';
 import { Card, EmptyState, ErrorState, Skeleton } from '../../components/states';
@@ -31,7 +32,7 @@ export function toSlices(report: ByCategoryReportDto): Slice[] {
   const top = report.items.slice(0, MAX_SLICES);
   const rest = report.items.slice(MAX_SLICES);
   const slices: Slice[] = top.map((item, index) => ({
-    name: item.category.name,
+    name: categoryName(item.category),
     total: item.total,
     percent: item.percent,
     color: SERIES[index] ?? 'var(--series-other)',

@@ -14,6 +14,7 @@ import { InputField, SelectField } from '../../components/Field';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/toast';
 import { formatMonthLong } from '../../lib/date';
+import { categoryName } from '../../lib/category-name';
 import { applyApiErrors } from '../../lib/form-errors';
 
 function BudgetForm({
@@ -96,7 +97,7 @@ function BudgetForm({
         {options.map((category) => (
           <option key={category.id} value={category.id}>
             {category.depth ? '　└ ' : ''}
-            {category.name}
+            {categoryName(category)}
             {category.depth === 0 && category.children.length > 0
               ? t('budgets.includesChildren')
               : ''}
@@ -145,7 +146,9 @@ export function BudgetFormModal({
       open={open}
       onClose={onClose}
       title={
-        budget ? t('budgets.editTitle', { name: budget.category.name }) : t('budgets.newTitle')
+        budget
+          ? t('budgets.editTitle', { name: categoryName(budget.category) })
+          : t('budgets.newTitle')
       }
     >
       <BudgetForm
