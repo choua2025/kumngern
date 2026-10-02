@@ -51,26 +51,48 @@ API_DOMAIN="$(env_get API_DOMAIN)"
 # A tag of "not-deployed" (or none) means that app has never run here.
 is_deployed() { local tag; tag="$(env_get "$1")"; [ -n "$tag" ] && [ "$tag" != not-deployed ]; }
 
-http_code() { curl -s -o /dev/null -m 5 -w '%{http_code}' "$1" || true; }
+# Why the last check failed — printed with every attempt, so a red deploy says WHAT broke.
+REASON=''
+
+# 200 → ok. Otherwise set REASON from curl's exit code, which tells DNS, TLS and timeouts
+# apart (a bare "not ready" once hid a deleted DNS record behind a "broken release").
+url_ok() {
+  local url="$1" code rc
+  code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$url")" && rc=0 || rc=$?
+  [ "$code" = 200 ] && return 0
+  case "$rc" in
+    0) REASON="$url → HTTP $code" ;;
+    6) REASON="$url → DNS cannot resolve the host (check its A record)" ;;
+    7) REASON="$url → connection refused (is the host nginx running?)" ;;
+    28) REASON="$url → timed out" ;;
+    35 | 51 | 58 | 60) REASON="$url → TLS/certificate problem (curl exit $rc)" ;;
+    *) REASON="$url → curl exit $rc" ;;
+  esac
+  return 1
+}
 
 # Each deploy verifies its OWN unit, so the very first deploy works in either order:
 #   api → readiness from inside the container (database reachable). The public URL is
 #         checked too once web exists — the api is only reachable through web's nginx.
 #   web → end to end through both nginx: /healthz, plus /api/v1/ready if the api is deployed.
 check_once() {
+  REASON=''
   if [ -n "$HEALTH_URL" ]; then # local testing override
-    [ "$(http_code "$HEALTH_URL")" = 200 ]
+    url_ok "$HEALTH_URL"
     return
   fi
   if [ "$SERVICE" = api ]; then
-    "${COMPOSE[@]}" exec -T api wget -qO /dev/null http://127.0.0.1:3000/api/v1/ready 2> /dev/null || return 1
+    if ! "${COMPOSE[@]}" exec -T api wget -qO /dev/null http://127.0.0.1:3000/api/v1/ready 2> /dev/null; then
+      REASON='api container: /api/v1/ready did not answer 200 (see the api logs below)'
+      return 1
+    fi
     if is_deployed WEB_IMAGE_TAG; then
-      [ "$(http_code "https://$API_DOMAIN/api/v1/ready")" = 200 ] || return 1
+      url_ok "https://$API_DOMAIN/api/v1/ready" || return 1
     fi
   else
-    [ "$(http_code "https://$APP_DOMAIN/healthz")" = 200 ] || return 1
+    url_ok "https://$APP_DOMAIN/healthz" || return 1
     if is_deployed API_IMAGE_TAG; then
-      [ "$(http_code "https://$APP_DOMAIN/api/v1/ready")" = 200 ] || return 1
+      url_ok "https://$APP_DOMAIN/api/v1/ready" || return 1
     fi
   fi
 }
@@ -82,7 +104,7 @@ healthy() {
       echo "  health check ${attempt}/${HEALTH_ATTEMPTS}: ok"
       return 0
     fi
-    echo "  health check ${attempt}/${HEALTH_ATTEMPTS}: not ready"
+    echo "  health check ${attempt}/${HEALTH_ATTEMPTS}: not ready — ${REASON}"
     sleep "$HEALTH_INTERVAL"
   done
   return 1
@@ -159,6 +181,6 @@ env_set "$TAG_VAR" "$PREVIOUS_TAG"
 if healthy; then
   echo "::warning::Rolled back $SERVICE to $PREVIOUS_TAG (note: database migrations are NOT rolled back)"
 else
-  echo "::error::Rollback of $SERVICE to $PREVIOUS_TAG is ALSO unhealthy — manual action needed"
+  echo "::error::Rollback of $SERVICE to $PREVIOUS_TAG is ALSO unhealthy — manual action needed. Last reason: $REASON"
 fi
 exit 1
