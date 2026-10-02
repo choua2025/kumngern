@@ -88,20 +88,30 @@ async function upsertSystemCategory(
   seed: CategorySeed,
   parentId: bigint | null,
 ): Promise<bigint> {
-  // System categories have user_id NULL, so there is no unique key to upsert on.
-  const existing = await prisma.category.findFirst({
-    where: { userId: null, parentId, name: seed.name, type: seed.type },
-    select: { id: true },
-  });
+  // By system_key (unique) first; by name for rows seeded before system_key existed —
+  // the update then fills the key in, so running this again is always safe.
+  const existing =
+    (await prisma.category.findUnique({ where: { systemKey: seed.key }, select: { id: true } })) ??
+    (await prisma.category.findFirst({
+      where: { userId: null, parentId, name: seed.name, type: seed.type },
+      select: { id: true },
+    }));
   if (existing) {
     await prisma.category.update({
       where: { id: existing.id },
-      data: { icon: seed.icon, color: seed.color },
+      data: { icon: seed.icon, color: seed.color, systemKey: seed.key },
     });
     return existing.id;
   }
   const created = await prisma.category.create({
-    data: { name: seed.name, type: seed.type, icon: seed.icon, color: seed.color, parentId },
+    data: {
+      name: seed.name,
+      type: seed.type,
+      icon: seed.icon,
+      color: seed.color,
+      parentId,
+      systemKey: seed.key,
+    },
     select: { id: true },
   });
   return created.id;

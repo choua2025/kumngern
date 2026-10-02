@@ -6,12 +6,14 @@ interface CreateUserData {
   passwordHash: string;
   displayName: string;
   defaultCurrency: string;
+  locale?: string | undefined;
 }
 
 interface UpdateUserData {
   displayName?: string | undefined;
   defaultCurrency?: string | undefined;
   timezone?: string | undefined;
+  locale?: string | undefined;
 }
 
 export const usersRepository = {

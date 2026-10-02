@@ -1,6 +1,7 @@
 import { tagNameSchema, type TagRefDto } from '@income-expenses/shared';
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCreateTag, useDeleteTag, useRenameTag, useTags } from '../../api/tags';
@@ -13,10 +14,11 @@ import { useToast } from '../../components/toast';
 /** Validates with the same shared schema as the API; returns an error message or null. */
 function validateName(name: string): string | null {
   const result = tagNameSchema.safeParse(name);
-  return result.success ? null : (result.error.issues[0]?.message ?? 'ชื่อไม่ถูกต้อง');
+  return result.success ? null : (result.error.issues[0]?.message ?? 'validation.invalidName');
 }
 
 function TagRow({ tag, onDelete }: { tag: TagRefDto; onDelete: (tag: TagRefDto) => void }) {
+  const { t } = useTranslation();
   const renameTag = useRenameTag();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -43,16 +45,26 @@ function TagRow({ tag, onDelete }: { tag: TagRefDto; onDelete: (tag: TagRefDto) 
         <form onSubmit={(event) => void save(event)} className="flex items-end gap-2">
           <div className="flex-1">
             <InputField
-              label={`เปลี่ยนชื่อ "${tag.name}"`}
+              label={t('tags.renameLabel', { name: tag.name })}
               value={name}
               autoFocus
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <Button type="submit" size="sm" loading={renameTag.isPending} aria-label="บันทึกชื่อแท็ก">
+          <Button
+            type="submit"
+            size="sm"
+            loading={renameTag.isPending}
+            aria-label={t('tags.saveName')}
+          >
             <Check className="size-4" aria-hidden />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setEditing(false)} aria-label="ยกเลิก">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setEditing(false)}
+            aria-label={t('common.cancel')}
+          >
             <X className="size-4" aria-hidden />
           </Button>
         </form>
@@ -72,7 +84,7 @@ function TagRow({ tag, onDelete }: { tag: TagRefDto; onDelete: (tag: TagRefDto) 
         variant="ghost"
         size="sm"
         onClick={() => setEditing(true)}
-        aria-label={`แก้ไขแท็ก ${tag.name}`}
+        aria-label={t('tags.editItem', { name: tag.name })}
       >
         <Pencil className="size-4" aria-hidden />
       </Button>
@@ -80,7 +92,7 @@ function TagRow({ tag, onDelete }: { tag: TagRefDto; onDelete: (tag: TagRefDto) 
         variant="ghost"
         size="sm"
         onClick={() => onDelete(tag)}
-        aria-label={`ลบแท็ก ${tag.name}`}
+        aria-label={t('tags.deleteItem', { name: tag.name })}
       >
         <Trash2 className="size-4" aria-hidden />
       </Button>
@@ -89,6 +101,7 @@ function TagRow({ tag, onDelete }: { tag: TagRefDto; onDelete: (tag: TagRefDto) 
 }
 
 export function TagsPanel() {
+  const { t } = useTranslation();
   const tags = useTags();
   const createTag = useCreateTag();
   const deleteTag = useDeleteTag();
@@ -105,7 +118,7 @@ export function TagsPanel() {
     try {
       await createTag.mutateAsync(name);
       setName('');
-      toast.show('เพิ่มแท็กแล้ว');
+      toast.show(t('tags.added'));
     } catch (error) {
       setNameError(errorMessage(error));
     }
@@ -115,7 +128,7 @@ export function TagsPanel() {
     if (!deleting) return;
     try {
       await deleteTag.mutateAsync(deleting.id);
-      toast.show(`ลบแท็ก "${deleting.name}" แล้ว (รายการยังอยู่ครบ)`);
+      toast.show(t('tags.deleted', { name: deleting.name }));
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
     } finally {
@@ -128,15 +141,15 @@ export function TagsPanel() {
       <form onSubmit={(event) => void add(event)} noValidate className="mb-4 flex items-end gap-2">
         <div className="flex-1">
           <InputField
-            label="แท็กใหม่"
-            placeholder="เช่น ทริปญี่ปุ่น, ลูกค้า A"
+            label={t('tags.newTag')}
+            placeholder={t('tags.placeholder')}
             value={name}
             error={nameError ?? undefined}
             onChange={(event) => setName(event.target.value)}
           />
         </div>
         <Button type="submit" loading={createTag.isPending}>
-          <Plus className="size-4" aria-hidden /> เพิ่ม
+          <Plus className="size-4" aria-hidden /> {t('common.add')}
         </Button>
       </form>
 
@@ -145,10 +158,7 @@ export function TagsPanel() {
       ) : tags.isError ? (
         <ErrorState error={tags.error} onRetry={() => void tags.refetch()} />
       ) : tags.data.length === 0 ? (
-        <EmptyState
-          title="ยังไม่มีแท็ก"
-          description="ใช้แท็กจัดกลุ่มรายการข้ามหมวด เช่น ทริป โปรเจกต์ หรือลูกค้า"
-        />
+        <EmptyState title={t('tags.empty')} description={t('tags.emptyHint')} />
       ) : (
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">
           {tags.data.map((tag) => (
@@ -159,8 +169,8 @@ export function TagsPanel() {
 
       <ConfirmDialog
         open={deleting !== null}
-        title="ลบแท็ก"
-        message={`ลบแท็ก "${deleting?.name ?? ''}"? รายการที่ติดแท็กนี้จะยังอยู่ครบ แค่ไม่มีแท็กนี้แล้ว`}
+        title={t('tags.deleteTitle')}
+        message={t('tags.deleteMessage', { name: deleting?.name ?? '' })}
         loading={deleteTag.isPending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}

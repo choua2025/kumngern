@@ -1,4 +1,5 @@
 import type { TransactionInput } from '@income-expenses/shared';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useCategories } from '../../api/categories';
 import { useCreateTransaction } from '../../api/transactions';
@@ -12,6 +13,7 @@ import { QuickAddForm } from './QuickAddForm';
 const LAST_WALLET_KEY = 'quickAdd.lastWalletId';
 
 export function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const wallets = useWallets();
   const categories = useCategories();
   const createTransaction = useCreateTransaction();
@@ -20,7 +22,7 @@ export function QuickAddModal({ open, onClose }: { open: boolean; onClose: () =>
   const handleSubmit = async (input: TransactionInput) => {
     await createTransaction.mutateAsync(input);
     writePreference(LAST_WALLET_KEY, input.walletId);
-    toast.show('บันทึกรายการแล้ว');
+    toast.show(t('quickAdd.saved'));
     onClose();
   };
 
@@ -30,22 +32,22 @@ export function QuickAddModal({ open, onClose }: { open: boolean; onClose: () =>
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="เพิ่มรายการ">
+    <Modal open={open} onClose={onClose} title={t('quickAdd.title')}>
       {wallets.isPending || categories.isPending ? (
         <LoadingRows rows={4} />
       ) : wallets.isError || categories.isError ? (
         <ErrorState error={wallets.error ?? categories.error} onRetry={retry} />
       ) : wallets.data.length === 0 ? (
         <EmptyState
-          title="ยังไม่มีกระเป๋าเงิน"
-          description="สร้างกระเป๋าใบแรกก่อน แล้วค่อยบันทึกรายการ"
+          title={t('quickAdd.noWallets')}
+          description={t('quickAdd.noWalletsHint')}
           action={
             <Link
               to="/wallets"
               onClick={onClose}
               className="text-sm font-medium text-blue-600 hover:underline"
             >
-              ไปหน้ากระเป๋าเงิน
+              {t('quickAdd.goToWallets')}
             </Link>
           }
         />

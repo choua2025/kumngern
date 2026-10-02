@@ -1,4 +1,9 @@
 import {
+  categoryDisplayName,
+  DEFAULT_LOCALE,
+  isLocale,
+  type ServerMessages,
+  serverMessagesByLocale,
   type ExportTransactionsQuery,
   type ListTransactionsQuery,
   MAX_EXPORT_ROWS,
@@ -11,7 +16,7 @@ import {
 } from '@income-expenses/shared';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { type Db, runInTransaction, type TransactionRunner } from '../../lib/db.js';
-import { errors } from '../../lib/errors.js';
+import { detail, errors } from '../../lib/errors.js';
 import { toDecimal } from '../../lib/money.js';
 import { escapeLikePattern, toBigIntId } from '../../lib/params.js';
 import { csvCell, csvRow, UTF8_BOM } from '../../lib/csv.js';
@@ -33,7 +38,7 @@ import {
   transactionsRepository,
 } from './transactions.repository.js';
 
-const TRANSACTION_NOT_FOUND = 'ไม่พบรายการ';
+const TRANSACTION_NOT_FOUND = 'errors.transactionNotFound';
 
 interface TransactionsServiceDeps {
   transactions: TransactionsRepository;
@@ -87,7 +92,7 @@ const CSV_HEADER = [
   'tags',
 ];
 
-function toCsvLine(row: TransactionExportRow, timezone: string): string {
+function toCsvLine(row: TransactionExportRow, timezone: string, catalog: ServerMessages): string {
   const { date, time } = toLocalDateTime(row.occurredAt, timezone);
   return csvRow([
     date,
@@ -95,9 +100,10 @@ function toCsvLine(row: TransactionExportRow, timezone: string): string {
     row.type,
     csvCell(row.wallet.name),
     csvCell(row.toWallet?.name),
-    // A sub-category shows "กาแฟ" with parent "อาหาร"; a root category has no parent.
-    csvCell(row.category?.name),
-    csvCell(row.category?.parent?.name),
+    // A sub-category shows "Coffee" with parent "Food"; a root category has no parent.
+    // System category names follow the user's language (users.locale).
+    csvCell(row.category && categoryDisplayName(row.category, catalog)),
+    csvCell(row.category?.parent && categoryDisplayName(row.category.parent, catalog)),
     csvCell(row.amount.toFixed(2), { numeric: true }),
     csvCell(row.toAmount?.toFixed(2), { numeric: true }),
     row.wallet.currencyCode,
@@ -154,13 +160,13 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
     const source = found.find((wallet) => wallet.id === walletId);
     const target = toWalletId === null ? null : found.find((wallet) => wallet.id === toWalletId);
     if (!source || (toWalletId !== null && !target)) {
-      throw errors.notFound('ไม่พบกระเป๋าเงิน');
+      throw errors.notFound('errors.walletNotFound');
     }
 
     // Rule 4: archived wallets cannot receive new entries.
     for (const wallet of [source, target]) {
       if (wallet && wallet.isArchived && mustBeActive(wallet.id)) {
-        throw errors.conflict(`กระเป๋า "${wallet.name}" ถูก archive แล้ว บันทึกรายการไม่ได้`);
+        throw errors.conflict('errors.walletArchived', { name: wallet.name });
       }
     }
 
@@ -171,14 +177,10 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
       // Rule 3: cross-currency transfers need the received amount; same-currency must not have it.
       const crossCurrency = source.currencyCode !== target?.currencyCode;
       if (crossCurrency && !input.toAmount) {
-        throw errors.validation(undefined, [
-          { path: 'toAmount', message: 'โอนข้ามสกุลเงินต้องระบุจำนวนเงินที่เข้ากระเป๋าปลายทาง' },
-        ]);
+        throw errors.validation(undefined, [detail('toAmount', 'validation.toAmountRequired')]);
       }
       if (!crossCurrency && input.toAmount) {
-        throw errors.validation(undefined, [
-          { path: 'toAmount', message: 'โอนภายในสกุลเงินเดียวกันไม่ต้องระบุ toAmount' },
-        ]);
+        throw errors.validation(undefined, [detail('toAmount', 'validation.toAmountNotAllowed')]);
       }
       toAmount = input.toAmount ? toDecimal(input.toAmount) : null;
     } else {
@@ -186,11 +188,11 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
       categoryId = BigInt(input.categoryId);
       const category = await categories.findVisibleById(userId, categoryId, db);
       if (!category) {
-        throw errors.notFound('ไม่พบหมวดหมู่');
+        throw errors.notFound('errors.categoryNotFound');
       }
       if (category.type !== input.type) {
         throw errors.validation(undefined, [
-          { path: 'categoryId', message: 'ประเภทหมวดไม่ตรงกับประเภทรายการ' },
+          detail('categoryId', 'validation.categoryTypeMismatch'),
         ]);
       }
     }
@@ -200,7 +202,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
     if (tagIds.length > 0) {
       const ownedTags = await tags.findManyByIds(userId, tagIds, db);
       if (ownedTags.length !== tagIds.length) {
-        throw errors.notFound('ไม่พบแท็ก');
+        throw errors.notFound('errors.tagNotFound');
       }
     }
 
@@ -267,6 +269,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
       }
       // Captured here: TypeScript does not carry the null-check into the generator closure.
       const timezone = user.timezone;
+      const catalog = serverMessagesByLocale[isLocale(user.locale) ? user.locale : DEFAULT_LOCALE];
       const where = buildFilterWhere(userId, query, timezone);
       const orderBy = orderByFor(query.sort);
       const today = toLocalDateTime(new Date(), timezone).date;
@@ -276,7 +279,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
         let written = 0;
         for await (const batch of transactions.streamForExport(where, orderBy)) {
           const rows = batch.slice(0, MAX_EXPORT_ROWS - written);
-          yield rows.map((row) => toCsvLine(row, timezone)).join('');
+          yield rows.map((row) => toCsvLine(row, timezone, catalog)).join('');
           written += rows.length;
           if (written >= MAX_EXPORT_ROWS) return;
         }
@@ -346,7 +349,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
         const related = await wallets.findManyByIds(userId, ids, tx);
         const archived = related.find((wallet) => wallet.isArchived);
         if (archived) {
-          throw errors.conflict(`กระเป๋า "${archived.name}" ถูก archive แล้ว กู้คืนรายการไม่ได้`);
+          throw errors.conflict('errors.walletArchivedRestore', { name: archived.name });
         }
         await transactions.restore(userId, id, tx);
         return getOrThrow(userId, id, tx);

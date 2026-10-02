@@ -8,7 +8,9 @@ const walletRef = { select: { id: true, name: true, currencyCode: true } } as co
 export const transactionInclude = {
   wallet: walletRef,
   toWallet: walletRef,
-  category: { select: { id: true, name: true, icon: true, color: true, parentId: true } },
+  category: {
+    select: { id: true, name: true, systemKey: true, icon: true, color: true, parentId: true },
+  },
   tags: {
     select: { tag: { select: { id: true, name: true } } },
     orderBy: { tag: { name: 'asc' } },
@@ -28,7 +30,9 @@ export const transactionDetailInclude = {
 export const transactionExportInclude = {
   wallet: { select: { name: true, currencyCode: true } },
   toWallet: { select: { name: true, currencyCode: true } },
-  category: { select: { name: true, parent: { select: { name: true } } } },
+  category: {
+    select: { name: true, systemKey: true, parent: { select: { name: true, systemKey: true } } },
+  },
   tags: { select: { tag: { select: { name: true } } }, orderBy: { tag: { name: 'asc' } } },
 } satisfies Prisma.TransactionInclude;
 

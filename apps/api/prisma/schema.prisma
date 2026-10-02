@@ -42,6 +42,8 @@ model User {
   displayName     String   @map("display_name") @db.VarChar(100)
   defaultCurrency String   @map("default_currency") @db.Char(3)
   timezone        String   @default("Asia/Bangkok") @db.VarChar(50)
+  /// UI language: th | en | lo (chk_users_locale). Synced to every device of the user.
+  locale          String   @default("th") @db.VarChar(5)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -100,6 +102,9 @@ model Category {
   type      String   @db.VarChar(10)
   icon      String?  @db.VarChar(50)
   color     String?  @db.Char(7)
+  /// Stable id of a SYSTEM category ("food", "salary"): the web translates its name.
+  /// NULL for user categories (chk_categories_system_key).
+  systemKey String?  @unique(map: "uq_categories_system_key") @map("system_key") @db.VarChar(50)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_categories_user")

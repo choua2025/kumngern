@@ -1,10 +1,11 @@
 import { rateLimit } from 'express-rate-limit';
+import type { ErrorKey } from '@income-expenses/shared';
 import { errors } from '../lib/errors.js';
 
 interface RateLimiterOptions {
   windowMs: number;
   limit: number;
-  message?: string;
+  message?: ErrorKey;
 }
 
 /**

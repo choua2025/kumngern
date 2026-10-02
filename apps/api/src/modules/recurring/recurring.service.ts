@@ -5,7 +5,7 @@ import {
   recurringRuleIssues,
   type UpdateRecurringData,
 } from '@income-expenses/shared';
-import { errors } from '../../lib/errors.js';
+import { detail, errors } from '../../lib/errors.js';
 import { toDecimal, toMoneyString } from '../../lib/money.js';
 import { dateOnly, todayIn, toDateColumn } from '../../lib/recurrence.js';
 import {
@@ -21,7 +21,7 @@ import {
   recurringRepository,
 } from './recurring.repository.js';
 
-const RECURRING_NOT_FOUND = 'ไม่พบรายการประจำ';
+const RECURRING_NOT_FOUND = 'errors.recurringNotFound';
 
 export function toRecurringDto(row: RecurringRow): RecurringDto {
   return {
@@ -35,6 +35,7 @@ export function toRecurringDto(row: RecurringRow): RecurringDto {
     category: {
       id: row.category.id.toString(),
       name: row.category.name,
+      systemKey: row.category.systemKey,
       icon: row.category.icon,
       color: row.category.color,
       parentId: row.category.parentId?.toString() ?? null,
@@ -99,21 +100,19 @@ export function createRecurringService(deps: RecurringServiceDeps) {
     const walletId = BigInt(state.walletId);
     const [wallet] = await wallets.findManyByIds(userId, [walletId]);
     if (!wallet) {
-      throw errors.notFound('ไม่พบกระเป๋าเงิน');
+      throw errors.notFound('errors.walletNotFound');
     }
     if (wallet.isArchived && (changed.wallet || state.isActive)) {
-      throw errors.conflict(`กระเป๋า "${wallet.name}" ถูก archive แล้ว ตั้งรายการประจำไม่ได้`);
+      throw errors.conflict('errors.walletArchivedRecurring', { name: wallet.name });
     }
 
     const categoryId = BigInt(state.categoryId);
     const category = await categories.findVisibleById(userId, categoryId);
     if (!category) {
-      throw errors.notFound('ไม่พบหมวดหมู่');
+      throw errors.notFound('errors.categoryNotFound');
     }
     if (category.type !== state.type) {
-      throw errors.validation(undefined, [
-        { path: 'categoryId', message: 'ประเภทหมวดไม่ตรงกับประเภทรายการ' },
-      ]);
+      throw errors.validation(undefined, [detail('categoryId', 'validation.categoryTypeMismatch')]);
     }
 
     if (changed.nextRunDate) {
@@ -123,9 +122,7 @@ export function createRecurringService(deps: RecurringServiceDeps) {
       }
       // "Today" in the user's timezone: a past start would make the job back-fill entries.
       if (state.nextRunDate < todayIn(user.timezone, now())) {
-        throw errors.validation(undefined, [
-          { path: 'nextRunDate', message: 'วันที่เริ่มต้องไม่ก่อนวันนี้' },
-        ]);
+        throw errors.validation(undefined, [detail('nextRunDate', 'validation.startNotPast')]);
       }
     }
 

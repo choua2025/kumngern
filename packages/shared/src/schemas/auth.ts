@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { msg } from '../messages/index.js';
 import {
   currencyCodeSchema,
   displayNameSchema,
   emailSchema,
+  localeSchema,
   passwordSchema,
   timezoneSchema,
 } from './common.js';
@@ -15,12 +17,16 @@ export const registerSchema = z.object({
   password: passwordSchema,
   displayName: displayNameSchema,
   defaultCurrency: currencyCodeSchema,
+  /** The language the visitor was using while signing up. */
+  locale: localeSchema.optional(),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string({ error: 'กรุณากรอกรหัสผ่าน' }).min(1, 'กรุณากรอกรหัสผ่าน'),
+  password: z
+    .string({ error: msg('validation.passwordRequired') })
+    .min(1, msg('validation.passwordRequired')),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -29,21 +35,22 @@ export const updateProfileSchema = z
     displayName: displayNameSchema.optional(),
     defaultCurrency: currencyCodeSchema.optional(),
     timezone: timezoneSchema.optional(),
+    locale: localeSchema.optional(),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
-    message: 'ต้องระบุอย่างน้อย 1 ฟิลด์ที่จะแก้ไข',
+    message: msg('validation.atLeastOneField'),
   });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const changePasswordSchema = z
   .object({
     currentPassword: z
-      .string({ error: 'กรุณากรอกรหัสผ่านปัจจุบัน' })
-      .min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
+      .string({ error: msg('validation.currentPasswordRequired') })
+      .min(1, msg('validation.currentPasswordRequired')),
     newPassword: passwordSchema,
   })
   .refine((value) => value.currentPassword !== value.newPassword, {
-    message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม',
+    message: msg('validation.samePassword'),
     path: ['newPassword'],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   type CategoryDto,
   idSchema,
+  msg,
   optionalText,
   positiveMoneySchema,
   type TransactionDto,
@@ -9,6 +10,7 @@ import {
 } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { flattenCategories, useCategories } from '../../api/categories';
 import { useCreateTransaction, useUpdateTransaction } from '../../api/transactions';
@@ -20,6 +22,8 @@ import { Modal } from '../../components/Modal';
 import { ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from '../../lib/date';
+import { translateMessage } from '../../i18n/use-message';
+import { categoryName } from '../../lib/category-name';
 import { applyApiErrors } from '../../lib/form-errors';
 import { useCurrentUser } from '../auth/auth-context';
 import { AttachmentsSection } from './AttachmentsSection';
@@ -27,28 +31,32 @@ import { AttachmentsSection } from './AttachmentsSection';
 const formSchema = z
   .object({
     type: z.enum(['expense', 'income', 'transfer']),
-    walletId: z.string().min(1, 'กรุณาเลือกกระเป๋า').pipe(idSchema),
+    walletId: z.string().min(1, 'validation.selectWallet').pipe(idSchema),
     toWalletId: z.string(),
     categoryId: z.string(),
     amount: positiveMoneySchema,
     toAmount: z.string(),
     note: optionalText(255),
-    occurredAtLocal: z.string().min(1, 'กรุณาระบุวันเวลา'),
-    tagIds: z.array(z.string()).max(10, 'แท็กได้สูงสุด 10 แท็ก'),
+    occurredAtLocal: z.string().min(1, 'validation.enterDateTime'),
+    tagIds: z.array(z.string()).max(10, msg('validation.maxTags', { max: 10 })),
   })
   .superRefine((value, ctx) => {
     if (value.type === 'transfer') {
       if (!value.toWalletId)
-        ctx.addIssue({ code: 'custom', path: ['toWalletId'], message: 'กรุณาเลือกกระเป๋าปลายทาง' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['toWalletId'],
+          message: 'validation.selectTargetWallet',
+        });
       if (value.toWalletId && value.toWalletId === value.walletId) {
         ctx.addIssue({
           code: 'custom',
           path: ['toWalletId'],
-          message: 'ต้องไม่ใช่กระเป๋าเดียวกับต้นทาง',
+          message: 'validation.sameWallet',
         });
       }
     } else if (!value.categoryId) {
-      ctx.addIssue({ code: 'custom', path: ['categoryId'], message: 'กรุณาเลือกหมวดหมู่' });
+      ctx.addIssue({ code: 'custom', path: ['categoryId'], message: 'validation.selectCategory' });
     }
   });
 
@@ -65,6 +73,7 @@ function Body({
   categories: CategoryDto[];
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   const toast = useToast();
   const createTransaction = useCreateTransaction();
@@ -123,21 +132,21 @@ function Body({
     try {
       if (transaction) {
         await updateTransaction.mutateAsync({ id: transaction.id, patch: payload });
-        toast.show('บันทึกการแก้ไขแล้ว');
+        toast.show(t('transactions.saved'));
       } else if (payload.type === 'transfer') {
         await createTransaction.mutateAsync({
           ...payload,
           type: 'transfer',
           toWalletId: parsed.toWalletId,
         });
-        toast.show('บันทึกการโอนแล้ว');
+        toast.show(t('transactions.transferSaved'));
       } else {
         await createTransaction.mutateAsync({
           ...payload,
           type: payload.type,
           categoryId: parsed.categoryId,
         });
-        toast.show('บันทึกรายการแล้ว');
+        toast.show(t('transactions.created'));
       }
       onDone();
     } catch (error) {
@@ -166,14 +175,14 @@ function Body({
           {formError}
         </p>
       )}
-      <SelectField label="ประเภท" {...register('type')}>
-        <option value="expense">รายจ่าย</option>
-        <option value="income">รายรับ</option>
-        <option value="transfer">โอนระหว่างกระเป๋า</option>
+      <SelectField label={t('common.type')} {...register('type')}>
+        <option value="expense">{t('common.expense')}</option>
+        <option value="income">{t('common.income')}</option>
+        <option value="transfer">{t('transactions.transferBetween')}</option>
       </SelectField>
       <div className="grid gap-4 sm:grid-cols-2">
         <SelectField
-          label={type === 'transfer' ? 'จากกระเป๋า' : 'กระเป๋า'}
+          label={type === 'transfer' ? t('transactions.fromWallet') : t('common.wallet')}
           error={errors.walletId?.message}
           {...register('walletId')}
         >
@@ -185,11 +194,11 @@ function Body({
         </SelectField>
         {type === 'transfer' ? (
           <SelectField
-            label="ไปกระเป๋า"
+            label={t('transactions.toWallet')}
             error={errors.toWalletId?.message}
             {...register('toWalletId')}
           >
-            <option value="">— เลือก —</option>
+            <option value="">{t('common.select')}</option>
             {wallets.map((wallet) => (
               <option key={wallet.id} value={wallet.id}>
                 {wallet.name} ({wallet.currencyCode})
@@ -198,15 +207,15 @@ function Body({
           </SelectField>
         ) : (
           <SelectField
-            label="หมวดหมู่"
+            label={t('common.category')}
             error={errors.categoryId?.message}
             {...register('categoryId')}
           >
-            <option value="">— เลือก —</option>
+            <option value="">{t('common.select')}</option>
             {categoryOptions.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.depth ? '　└ ' : ''}
-                {category.name}
+                {categoryName(category)}
               </option>
             ))}
           </SelectField>
@@ -214,14 +223,18 @@ function Body({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <InputField
-          label={crossCurrency ? `จำนวนที่โอนออก (${source?.currencyCode})` : 'จำนวนเงิน'}
+          label={
+            crossCurrency
+              ? t('transactions.amountOut', { currency: source?.currencyCode })
+              : t('common.amount')
+          }
           inputMode="decimal"
           error={errors.amount?.message}
           {...register('amount', { setValueAs: (v: string) => v.replace(/[,\s]/g, '') })}
         />
         {crossCurrency && (
           <InputField
-            label={`จำนวนที่เข้าปลายทาง (${target?.currencyCode})`}
+            label={t('transactions.amountIn', { currency: target?.currencyCode })}
             inputMode="decimal"
             error={errors.toAmount?.message}
             {...register('toAmount', { setValueAs: (v: string) => v.replace(/[,\s]/g, '') })}
@@ -229,16 +242,20 @@ function Body({
         )}
       </div>
       <InputField
-        label={`วันเวลา (${user.timezone})`}
+        label={t('transactions.dateTime', { timezone: user.timezone })}
         type="datetime-local"
         error={errors.occurredAtLocal?.message}
         {...register('occurredAtLocal')}
       />
-      <InputField label="บันทึกช่วยจำ" error={errors.note?.message} {...register('note')} />
+      <InputField
+        label={t('transactions.memo')}
+        error={errors.note?.message}
+        {...register('note')}
+      />
       {(tags.data?.length ?? 0) > 0 && (
         <fieldset>
           <legend className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-            แท็ก
+            {t('transactions.tag')}
           </legend>
           <div className="flex flex-wrap gap-2">
             {tags.data?.map((tag) => {
@@ -268,11 +285,15 @@ function Body({
               );
             })}
           </div>
-          {errors.tagIds && <p className="mt-1 text-sm text-red-600">{errors.tagIds.message}</p>}
+          {errors.tagIds && (
+            <p className="mt-1 text-sm text-red-600">
+              {translateMessage(errors.tagIds.message ?? '')}
+            </p>
+          )}
         </fieldset>
       )}
       <Button type="submit" loading={isSubmitting} className="w-full">
-        บันทึก
+        {t('common.save')}
       </Button>
     </form>
   );
@@ -288,6 +309,7 @@ export function TransactionFormModal({
   onClose: () => void;
   transaction: TransactionDto | null;
 }) {
+  const { t } = useTranslation();
   const wallets = useWallets();
   const categories = useCategories();
 
@@ -295,7 +317,7 @@ export function TransactionFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={transaction ? 'แก้ไขรายการ' : 'โอนเงินระหว่างกระเป๋า'}
+      title={transaction ? t('transactions.editTitle') : t('transactions.transferModalTitle')}
     >
       {wallets.isPending || categories.isPending ? (
         <LoadingRows rows={5} />

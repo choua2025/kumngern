@@ -40,6 +40,7 @@ erDiagram
         varchar100 display_name
         char3 default_currency FK
         varchar50 timezone "default Asia/Bangkok"
+        varchar5 locale "th|en|lo, default th"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -69,6 +70,7 @@ erDiagram
         varchar10 type "income|expense"
         varchar50 icon "nullable"
         char7 color "nullable, #RRGGBB"
+        varchar50 system_key UK "nullable, system categories only"
         timestamptz created_at
     }
     transactions {

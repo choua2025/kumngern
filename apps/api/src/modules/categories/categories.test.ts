@@ -50,6 +50,16 @@ describe('GET /categories', () => {
     // Children are nested, not repeated at the root
     expect(tree.find((c) => c.id === coffee)).toBeUndefined();
   });
+
+  it('gives system categories a stable systemKey for translation, and none to own ones', async () => {
+    const created = await alice.post('/categories', { name: 'Cat food', type: 'expense' });
+    const tree = (await alice.get('/categories?type=expense')).body.data as CategoryDto[];
+
+    const foodNode = tree.find((c) => c.id === food);
+    expect(foodNode?.systemKey).toBe('food');
+    expect(foodNode?.children[0]?.systemKey).toBe('coffee');
+    expect(tree.find((c) => c.id === created.body.data.id)?.systemKey).toBeNull();
+  });
 });
 
 describe('creating categories (rule 7)', () => {

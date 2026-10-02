@@ -33,13 +33,13 @@ export function verifyAccessToken(token: string): bigint {
     });
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw errors.unauthorized('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      throw errors.unauthorized('errors.sessionExpired');
     }
-    throw errors.unauthorized('โทเคนไม่ถูกต้อง');
+    throw errors.unauthorized('errors.invalidToken');
   }
 
   if (typeof payload === 'string' || !payload.sub || !/^\d+$/.test(payload.sub)) {
-    throw errors.unauthorized('โทเคนไม่ถูกต้อง');
+    throw errors.unauthorized('errors.invalidToken');
   }
   return BigInt(payload.sub);
 }

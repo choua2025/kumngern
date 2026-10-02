@@ -6,6 +6,7 @@ import {
 } from '@income-expenses/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { useCreateBudget, useUpdateBudget } from '../../api/budgets';
 import { flattenCategories, useCategories } from '../../api/categories';
 import { Button } from '../../components/Button';
@@ -13,6 +14,7 @@ import { InputField, SelectField } from '../../components/Field';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/toast';
 import { formatMonthLong } from '../../lib/date';
+import { categoryName } from '../../lib/category-name';
 import { applyApiErrors } from '../../lib/form-errors';
 
 function BudgetForm({
@@ -26,6 +28,7 @@ function BudgetForm({
   takenCategoryIds: string[];
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const categories = useCategories('expense');
   const createBudget = useCreateBudget();
   const updateBudget = useUpdateBudget();
@@ -55,10 +58,10 @@ function BudgetForm({
           id: budget.id,
           patch: { limitAmount: values.limitAmount, alertPercent: Number(values.alertPercent) },
         });
-        toast.show('บันทึกงบแล้ว');
+        toast.show(t('budgets.saved'));
       } else {
         await createBudget.mutateAsync(values);
-        toast.show('ตั้งงบแล้ว');
+        toast.show(t('budgets.created'));
       }
       onDone();
     } catch (error) {
@@ -81,40 +84,44 @@ function BudgetForm({
           {formError}
         </p>
       )}
-      <p className="text-sm text-slate-500">เดือน {formatMonthLong(month)}</p>
+      <p className="text-sm text-slate-500">
+        {t('common.month', { month: formatMonthLong(month) })}
+      </p>
       <SelectField
-        label="หมวดรายจ่าย"
+        label={t('budgets.expenseCategory')}
         disabled={budget !== null}
         error={errors.categoryId?.message}
         {...register('categoryId')}
       >
-        <option value="">— เลือก —</option>
+        <option value="">{t('common.select')}</option>
         {options.map((category) => (
           <option key={category.id} value={category.id}>
             {category.depth ? '　└ ' : ''}
-            {category.name}
-            {category.depth === 0 && category.children.length > 0 ? ' (รวมหมวดย่อย)' : ''}
+            {categoryName(category)}
+            {category.depth === 0 && category.children.length > 0
+              ? t('budgets.includesChildren')
+              : ''}
           </option>
         ))}
       </SelectField>
       <InputField
-        label="วงเงิน"
+        label={t('budgets.limit')}
         inputMode="decimal"
         autoFocus={budget !== null}
         error={errors.limitAmount?.message}
         {...register('limitAmount', { setValueAs: (v: string) => v.replace(/[,\s]/g, '') })}
       />
       <InputField
-        label="แจ้งเตือนเมื่อใช้ไปถึง (%)"
+        label={t('budgets.alertAt')}
         type="number"
         min={1}
         max={100}
-        hint="แถบจะเปลี่ยนเป็นสีเหลืองเมื่อถึงเปอร์เซ็นต์นี้"
+        hint={t('budgets.alertHint')}
         error={errors.alertPercent?.message}
         {...register('alertPercent')}
       />
       <Button type="submit" loading={isSubmitting} className="w-full">
-        {budget ? 'บันทึก' : 'ตั้งงบ'}
+        {budget ? t('common.save') : t('budgets.set')}
       </Button>
     </form>
   );
@@ -133,11 +140,16 @@ export function BudgetFormModal({
   takenCategoryIds: string[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={budget ? `แก้ไขงบ${budget.category.name}` : 'ตั้งงบประมาณ'}
+      title={
+        budget
+          ? t('budgets.editTitle', { name: categoryName(budget.category) })
+          : t('budgets.newTitle')
+      }
     >
       <BudgetForm
         budget={budget}

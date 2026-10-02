@@ -1,6 +1,7 @@
 import type { RecurringDto } from '@income-expenses/shared';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toApiError } from '../../api/errors';
 import { useDeleteRecurring, useRecurring, useUpdateRecurring } from '../../api/recurring';
 import { Button } from '../../components/Button';
@@ -9,8 +10,9 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Money } from '../../components/Money';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
+import { categoryName } from '../../lib/category-name';
 import { cn } from '../../lib/cn';
-import { FREQUENCY_LABELS, formatLocalDate } from './labels';
+import { formatLocalDate, frequencyLabel } from './labels';
 import { RecurringFormModal } from './RecurringFormModal';
 
 /** Field-level messages (e.g. "start date must not be in the past") say more than the summary. */
@@ -20,14 +22,15 @@ function detailedMessage(error: unknown): string {
 }
 
 function ActiveSwitch({ recurring }: { recurring: RecurringDto }) {
+  const { t } = useTranslation();
   const update = useUpdateRecurring();
   const toast = useToast();
-  const label = recurring.isActive ? 'หยุดชั่วคราว' : 'เปิดใช้งาน';
+  const label = recurring.isActive ? t('recurring.pause') : t('recurring.resume');
 
   const toggle = async () => {
     try {
       await update.mutateAsync({ id: recurring.id, patch: { isActive: !recurring.isActive } });
-      toast.show(recurring.isActive ? 'หยุดรายการประจำแล้ว' : 'เปิดใช้งานรายการประจำแล้ว');
+      toast.show(recurring.isActive ? t('recurring.paused') : t('recurring.resumed'));
     } catch (error) {
       toast.show(detailedMessage(error), { tone: 'error' });
     }
@@ -38,7 +41,7 @@ function ActiveSwitch({ recurring }: { recurring: RecurringDto }) {
       type="button"
       role="switch"
       aria-checked={recurring.isActive}
-      aria-label={`${label}: ${recurring.note ?? recurring.category.name}`}
+      aria-label={`${label}: ${recurring.note ?? categoryName(recurring.category)}`}
       title={label}
       disabled={update.isPending}
       onClick={() => void toggle()}
@@ -59,6 +62,7 @@ function ActiveSwitch({ recurring }: { recurring: RecurringDto }) {
 }
 
 export function RecurringPage() {
+  const { t } = useTranslation();
   const recurring = useRecurring();
   const deleteRecurring = useDeleteRecurring();
   const toast = useToast();
@@ -69,7 +73,7 @@ export function RecurringPage() {
     if (!deleting) return;
     try {
       await deleteRecurring.mutateAsync(deleting.id);
-      toast.show('ลบรายการประจำแล้ว');
+      toast.show(t('recurring.deleted'));
     } catch (error) {
       toast.show(detailedMessage(error), { tone: 'error' });
     } finally {
@@ -83,13 +87,11 @@ export function RecurringPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">รายการประจำ</h1>
-          <p className="text-sm text-slate-500">
-            ระบบบันทึกให้อัตโนมัติทุกวันหลังเที่ยงคืน เช่น ค่าเช่า เงินเดือน ค่าอินเทอร์เน็ต
-          </p>
+          <h1 className="text-2xl font-bold">{t('recurring.title')}</h1>
+          <p className="text-sm text-slate-500">{t('recurring.subtitle')}</p>
         </div>
         <Button onClick={() => setEditing('new')}>
-          <Plus className="size-4" aria-hidden /> เพิ่มรายการประจำ
+          <Plus className="size-4" aria-hidden /> {t('recurring.add')}
         </Button>
       </header>
 
@@ -100,10 +102,7 @@ export function RecurringPage() {
       ) : recurring.isError ? (
         <ErrorState error={recurring.error} onRetry={() => void recurring.refetch()} />
       ) : list.length === 0 ? (
-        <EmptyState
-          title="ยังไม่มีรายการประจำ"
-          description="ตั้งครั้งเดียว แล้วระบบจะบันทึกรายรับ/รายจ่ายให้ตามรอบที่กำหนด"
-        />
+        <EmptyState title={t('recurring.empty')} description={t('recurring.emptyHint')} />
       ) : (
         <Card>
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -114,12 +113,16 @@ export function RecurringPage() {
               >
                 <CategoryIcon icon={item.category.icon} color={item.category.color} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{item.note ?? item.category.name}</p>
+                  <p className="truncate font-medium">{item.note ?? categoryName(item.category)}</p>
                   <p className="truncate text-sm text-slate-500">
-                    {FREQUENCY_LABELS[item.frequency]} · {item.wallet.name}
+                    {frequencyLabel(item.frequency)} · {item.wallet.name}
                     {' · '}
-                    {item.isActive ? `รอบถัดไป ${formatLocalDate(item.nextRunDate)}` : 'หยุดอยู่'}
-                    {item.endDate ? ` · ถึง ${formatLocalDate(item.endDate)}` : ''}
+                    {item.isActive
+                      ? t('recurring.nextRun', { date: formatLocalDate(item.nextRunDate) })
+                      : t('recurring.stopped')}
+                    {item.endDate
+                      ? t('recurring.until', { date: formatLocalDate(item.endDate) })
+                      : ''}
                   </p>
                 </div>
                 <Money
@@ -133,7 +136,9 @@ export function RecurringPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setEditing(item)}
-                  aria-label={`แก้ไข ${item.note ?? item.category.name}`}
+                  aria-label={t('common.editItem', {
+                    name: item.note ?? categoryName(item.category),
+                  })}
                 >
                   <Pencil className="size-4" aria-hidden />
                 </Button>
@@ -141,7 +146,9 @@ export function RecurringPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setDeleting(item)}
-                  aria-label={`ลบ ${item.note ?? item.category.name}`}
+                  aria-label={t('common.deleteItem', {
+                    name: item.note ?? categoryName(item.category),
+                  })}
                 >
                   <Trash2 className="size-4" aria-hidden />
                 </Button>
@@ -159,8 +166,10 @@ export function RecurringPage() {
       />
       <ConfirmDialog
         open={deleting !== null}
-        title="ลบรายการประจำ"
-        message={`ลบ "${deleting?.note ?? deleting?.category.name ?? ''}"? รายการที่ระบบเคยบันทึกไปแล้วจะยังอยู่`}
+        title={t('recurring.deleteTitle')}
+        message={t('recurring.deleteMessage', {
+          name: deleting ? (deleting.note ?? categoryName(deleting.category)) : '',
+        })}
         loading={deleteRecurring.isPending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}

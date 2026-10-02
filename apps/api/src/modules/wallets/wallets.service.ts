@@ -13,8 +13,8 @@ import {
   walletsRepository,
 } from './wallets.repository.js';
 
-const WALLET_NOT_FOUND = 'ไม่พบกระเป๋าเงิน';
-const DUPLICATE_NAME = 'มีกระเป๋าชื่อนี้อยู่แล้ว';
+const WALLET_NOT_FOUND = 'errors.walletNotFound';
+const DUPLICATE_NAME = 'errors.walletDuplicate';
 
 export function toWalletDto(wallet: WalletWithBalance): WalletDto {
   return {
@@ -85,7 +85,7 @@ export function createWalletsService({ wallets, currencies }: WalletsServiceDeps
       // Ownership first, so another user's wallet is a 404 — never a revealing 409.
       await getOrThrow(userId, walletId);
       if (await wallets.isInUse(walletId)) {
-        throw errors.conflict('กระเป๋านี้มีรายการแล้ว ลบไม่ได้ กรุณาใช้การ archive แทน');
+        throw errors.conflict('errors.walletInUse');
       }
       if (!(await wallets.delete(userId, walletId))) {
         throw errors.notFound(WALLET_NOT_FOUND);

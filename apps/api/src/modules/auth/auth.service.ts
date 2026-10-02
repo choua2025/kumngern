@@ -5,7 +5,7 @@ import type {
   UserDto,
 } from '@income-expenses/shared';
 import { type Db, runInTransaction, type TransactionRunner } from '../../lib/db.js';
-import { errors } from '../../lib/errors.js';
+import { detail, errors } from '../../lib/errors.js';
 import { logger } from '../../lib/logger.js';
 import { hashPassword, verifyAgainstDummyHash, verifyPassword } from '../../lib/password.js';
 import {
@@ -37,8 +37,8 @@ interface AuthServiceDeps {
   transaction: TransactionRunner;
 }
 
-const INVALID_CREDENTIALS = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-const SESSION_EXPIRED = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
+const INVALID_CREDENTIALS = 'errors.invalidCredentials';
+const SESSION_EXPIRED = 'errors.sessionExpired';
 
 export function createAuthService({
   users,
@@ -65,7 +65,7 @@ export function createAuthService({
       await currencies.assertExists(input.defaultCurrency);
       if (await users.findByEmail(input.email)) {
         // Unavoidable enumeration trade-off: the user must be told the email is taken.
-        throw errors.conflict('อีเมลนี้ถูกใช้งานแล้ว');
+        throw errors.conflict('errors.emailTaken');
       }
 
       // Hash before opening the transaction: bcrypt is slow and would hold a DB connection.
@@ -78,6 +78,7 @@ export function createAuthService({
             passwordHash,
             displayName: input.displayName,
             defaultCurrency: input.defaultCurrency,
+            locale: input.locale,
           },
           tx,
         );
@@ -162,8 +163,8 @@ export function createAuthService({
       }
       if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
         // 400, not 401: a 401 would make the web client try to refresh and log the user out.
-        throw errors.validation('รหัสผ่านปัจจุบันไม่ถูกต้อง', [
-          { path: 'currentPassword', message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' },
+        throw errors.validation('validation.currentPasswordWrong', [
+          detail('currentPassword', 'validation.currentPasswordWrong'),
         ]);
       }
 

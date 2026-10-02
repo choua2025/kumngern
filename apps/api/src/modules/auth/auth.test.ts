@@ -97,6 +97,7 @@ describe('POST /auth/register', () => {
       displayName: 'สมชาย',
       defaultCurrency: 'THB',
       timezone: 'Asia/Bangkok',
+      locale: 'th',
       createdAt: expect.any(String) as unknown,
     });
     expect(JSON.stringify(res.body)).not.toMatch(/password/i);
@@ -158,7 +159,11 @@ describe('POST /auth/register', () => {
     });
     expect(currency.status).toBe(400);
     expect(currency.body.error.details).toEqual([
-      { path: 'defaultCurrency', message: expect.any(String) as unknown },
+      {
+        path: 'defaultCurrency',
+        message: 'This currency is not supported',
+        key: 'validation.currencyUnsupported',
+      },
     ]);
   });
 

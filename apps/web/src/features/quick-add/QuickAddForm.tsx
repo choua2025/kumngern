@@ -9,20 +9,23 @@ import {
 } from '@income-expenses/shared';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { flattenCategories } from '../../api/categories';
 import { Button } from '../../components/Button';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { InputField, SelectField } from '../../components/Field';
+import { categoryName } from '../../lib/category-name';
 import { cn } from '../../lib/cn';
+import { translateMessage } from '../../i18n/use-message';
 import { applyApiErrors } from '../../lib/form-errors';
 
 /** Built from the same shared primitives the API validates with. */
 const quickAddSchema = z.object({
   type: z.enum(['expense', 'income']),
   amount: positiveMoneySchema,
-  categoryId: z.string().min(1, 'กรุณาเลือกหมวดหมู่').pipe(idSchema),
-  walletId: z.string().min(1, 'กรุณาเลือกกระเป๋า').pipe(idSchema),
+  categoryId: z.string().min(1, 'validation.selectCategory').pipe(idSchema),
+  walletId: z.string().min(1, 'validation.selectWallet').pipe(idSchema),
   note: optionalText(255),
 });
 
@@ -44,6 +47,7 @@ export function QuickAddForm({
   onSubmit,
   now = () => new Date(),
 }: QuickAddFormProps) {
+  const { t } = useTranslation();
   const [formError, setFormError] = useState<string | null>(null);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const initialWallet =
@@ -102,13 +106,13 @@ export function QuickAddForm({
       {/* 1. Type */}
       <div
         role="radiogroup"
-        aria-label="ประเภท"
+        aria-label={t('common.type')}
         className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
       >
         {(
           [
-            ['expense', 'รายจ่าย'],
-            ['income', 'รายรับ'],
+            ['expense', 'common.expense'],
+            ['income', 'common.income'],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -127,14 +131,14 @@ export function QuickAddForm({
                 : 'text-slate-600 dark:text-slate-400',
             )}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
 
       {/* 2. Amount — focused first, numeric keyboard on phones */}
       <InputField
-        label="จำนวนเงิน"
+        label={t('common.amount')}
         inputMode="decimal"
         autoComplete="off"
         placeholder="0.00"
@@ -150,7 +154,7 @@ export function QuickAddForm({
       {/* 3. Category — one tap */}
       <fieldset>
         <legend className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-          หมวดหมู่
+          {t('common.category')}
         </legend>
         <div className="grid max-h-48 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
           {visibleCategories.map((category) => (
@@ -171,19 +175,23 @@ export function QuickAddForm({
               )}
             >
               <CategoryIcon icon={category.icon} color={category.color} size="sm" />
-              <span className="line-clamp-1">{category.name}</span>
+              <span className="line-clamp-1">{categoryName(category)}</span>
             </button>
           ))}
         </div>
         {errors.categoryId && (
           <p role="alert" className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-            {errors.categoryId.message}
+            {translateMessage(errors.categoryId.message ?? '')}
           </p>
         )}
       </fieldset>
 
       {/* 4. Wallet — remembered from last time */}
-      <SelectField label="กระเป๋า" error={errors.walletId?.message} {...register('walletId')}>
+      <SelectField
+        label={t('common.wallet')}
+        error={errors.walletId?.message}
+        {...register('walletId')}
+      >
         {wallets.map((wallet) => (
           <option key={wallet.id} value={wallet.id}>
             {wallet.name} ({wallet.currencyCode})
@@ -192,7 +200,7 @@ export function QuickAddForm({
       </SelectField>
 
       <InputField
-        label="บันทึกช่วยจำ (ไม่บังคับ)"
+        label={t('quickAdd.memoOptional')}
         autoComplete="off"
         error={errors.note?.message}
         {...register('note')}
@@ -204,7 +212,7 @@ export function QuickAddForm({
         loading={isSubmitting}
         className="w-full py-3 text-base"
       >
-        บันทึก
+        {t('common.save')}
       </Button>
     </form>
   );

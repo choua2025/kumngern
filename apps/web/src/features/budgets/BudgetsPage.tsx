@@ -1,6 +1,7 @@
 import type { BudgetDto } from '@income-expenses/shared';
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBudgets, useCopyBudgets, useDeleteBudget } from '../../api/budgets';
 import { errorMessage } from '../../api/errors';
 import { Button } from '../../components/Button';
@@ -9,6 +10,7 @@ import { Money } from '../../components/Money';
 import { MonthPicker } from '../../components/MonthPicker';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
+import { categoryName } from '../../lib/category-name';
 import { currentMonthIn, formatMonthLong } from '../../lib/date';
 import { sumMoney } from '../../lib/money';
 import { useCurrentUser } from '../auth/auth-context';
@@ -16,6 +18,7 @@ import { BudgetFormModal } from './BudgetFormModal';
 import { BudgetProgress } from './BudgetProgress';
 
 export function BudgetsPage() {
+  const { t } = useTranslation();
   const user = useCurrentUser();
   const [month, setMonth] = useState(() => currentMonthIn(user.timezone));
   const budgets = useBudgets(month);
@@ -30,8 +33,10 @@ export function BudgetsPage() {
       const result = await copyBudgets.mutateAsync(month);
       toast.show(
         result.copied === 0 && result.skipped === 0
-          ? 'เดือนก่อนไม่มีงบให้คัดลอก'
-          : `คัดลอก ${result.copied} หมวด${result.skipped ? ` (ข้าม ${result.skipped} หมวดที่มีงบอยู่แล้ว)` : ''}`,
+          ? t('budgets.nothingToCopy')
+          : result.skipped
+            ? t('budgets.copiedSkipped', { copied: result.copied, skipped: result.skipped })
+            : t('budgets.copied', { copied: result.copied }),
       );
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
@@ -42,7 +47,7 @@ export function BudgetsPage() {
     if (!deleting) return;
     try {
       await deleteBudget.mutateAsync(deleting.id);
-      toast.show(`ลบงบ${deleting.category.name}แล้ว`);
+      toast.show(t('budgets.deleted', { name: categoryName(deleting.category) }));
     } catch (error) {
       toast.show(errorMessage(error), { tone: 'error' });
     } finally {
@@ -56,20 +61,20 @@ export function BudgetsPage() {
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">งบประมาณ</h1>
+        <h1 className="text-2xl font-bold">{t('budgets.title')}</h1>
         <MonthPicker month={month} onChange={setMonth} />
       </header>
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => setEditing('new')}>
-          <Plus className="size-4" aria-hidden /> ตั้งงบ
+          <Plus className="size-4" aria-hidden /> {t('budgets.set')}
         </Button>
         <Button
           variant="secondary"
           loading={copyBudgets.isPending}
           onClick={() => void copyFromLastMonth()}
         >
-          <Copy className="size-4" aria-hidden /> คัดลอกจากเดือนก่อน
+          <Copy className="size-4" aria-hidden /> {t('budgets.copyPrevious')}
         </Button>
       </div>
 
@@ -81,28 +86,28 @@ export function BudgetsPage() {
         <ErrorState error={budgets.error} onRetry={() => void budgets.refetch()} />
       ) : list.length === 0 ? (
         <EmptyState
-          title={`ยังไม่ได้ตั้งงบของ${formatMonthLong(month)}`}
-          description="ตั้งงบรายหมวด หรือคัดลอกงบจากเดือนก่อนมาใช้ได้ในคลิกเดียว"
+          title={t('budgets.empty', { month: formatMonthLong(month) })}
+          description={t('budgets.emptyHint')}
         />
       ) : (
         <>
           <Card>
             <div className="grid gap-4 text-center sm:grid-cols-2">
               <div>
-                <p className="text-sm text-slate-500">ใช้ไปแล้ว</p>
+                <p className="text-sm text-slate-500">{t('budgets.spent')}</p>
                 <p className="text-2xl font-bold">
                   <Money amount={sumMoney(list.map((b) => b.spent))} currency={currency} />
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">จากงบรวม</p>
+                <p className="text-sm text-slate-500">{t('budgets.ofTotal')}</p>
                 <p className="text-2xl font-bold">
                   <Money amount={sumMoney(list.map((b) => b.limitAmount))} currency={currency} />
                 </p>
               </div>
             </div>
             <p className="mt-3 text-center text-xs text-slate-500">
-              นับเฉพาะรายจ่ายจากกระเป๋าสกุล {currency} · งบของหมวดหลักรวมหมวดย่อยด้วย
+              {t('budgets.footnote', { currency })}
             </p>
           </Card>
 
@@ -117,7 +122,7 @@ export function BudgetsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setEditing(budget)}
-                    aria-label={`แก้ไขงบ${budget.category.name}`}
+                    aria-label={t('budgets.editItem', { name: categoryName(budget.category) })}
                   >
                     <Pencil className="size-4" aria-hidden />
                   </Button>
@@ -125,7 +130,7 @@ export function BudgetsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleting(budget)}
-                    aria-label={`ลบงบ${budget.category.name}`}
+                    aria-label={t('budgets.deleteItem', { name: categoryName(budget.category) })}
                   >
                     <Trash2 className="size-4" aria-hidden />
                   </Button>
@@ -146,8 +151,11 @@ export function BudgetsPage() {
       />
       <ConfirmDialog
         open={deleting !== null}
-        title="ลบงบประมาณ"
-        message={`ลบงบ${deleting?.category.name ?? ''} ของ${formatMonthLong(month)}? รายการที่บันทึกไว้จะไม่หายไป`}
+        title={t('budgets.deleteTitle')}
+        message={t('budgets.deleteMessage', {
+          name: deleting ? categoryName(deleting.category) : '',
+          month: formatMonthLong(month),
+        })}
         loading={deleteBudget.isPending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}

@@ -107,6 +107,7 @@ export function createReportsService({ reports, users }: ReportsServiceDeps) {
           category: {
             id: row.categoryId.toString(),
             name: row.name,
+            systemKey: row.systemKey,
             icon: row.icon,
             color: row.color,
           },

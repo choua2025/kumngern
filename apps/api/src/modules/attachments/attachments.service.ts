@@ -20,8 +20,9 @@ export interface UploadedFile {
   buffer: Buffer;
 }
 
-const NOT_FOUND = 'ไม่พบไฟล์แนบ';
-const TOO_MANY = `แนบไฟล์ได้สูงสุด ${MAX_ATTACHMENTS_PER_TRANSACTION} ไฟล์ต่อรายการ`;
+const NOT_FOUND = 'errors.attachmentNotFound';
+const TOO_MANY = 'errors.tooManyAttachments';
+const TOO_MANY_PARAMS = { max: MAX_ATTACHMENTS_PER_TRANSACTION };
 
 export function toAttachmentDto(row: AttachmentRow): AttachmentDto {
   return {
@@ -72,7 +73,7 @@ export function createAttachmentsService(deps: AttachmentsServiceDeps) {
       files: UploadedFile[],
     ): Promise<AttachmentDto[]> {
       if (files.length === 0) {
-        throw errors.validation('กรุณาเลือกไฟล์ (field "files")');
+        throw errors.validation('errors.noFiles');
       }
 
       // 1. Validate everything BEFORE touching the disk.
@@ -80,13 +81,15 @@ export function createAttachmentsService(deps: AttachmentsServiceDeps) {
       for (const file of files) {
         // multer enforces this too; kept so the service is safe on its own.
         if (file.buffer.length > MAX_ATTACHMENT_SIZE_BYTES) {
-          throw errors.validation(`ไฟล์ "${file.originalName}" ใหญ่เกิน 5 MB`);
+          throw errors.validation('errors.namedFileTooLarge', undefined, {
+            name: file.originalName,
+          });
         }
         const type = detectFileType(file.buffer);
         if (!type) {
-          throw errors.validation(
-            `ไฟล์ "${file.originalName}" ไม่รองรับ (รองรับเฉพาะ JPEG, PNG, WEBP และ PDF)`,
-          );
+          throw errors.validation('errors.fileTypeUnsupported', undefined, {
+            name: file.originalName,
+          });
         }
         detected.push({ file, type });
       }
@@ -94,10 +97,10 @@ export function createAttachmentsService(deps: AttachmentsServiceDeps) {
       // Cheap pre-check so an obvious 404/409 does not write files for nothing.
       const existing = await attachments.countForOwnedTransaction(userId, transactionId);
       if (existing === null) {
-        throw errors.notFound('ไม่พบรายการ');
+        throw errors.notFound('errors.transactionNotFound');
       }
       if (existing + files.length > MAX_ATTACHMENTS_PER_TRANSACTION) {
-        throw errors.conflict(TOO_MANY);
+        throw errors.conflict(TOO_MANY, TOO_MANY_PARAMS);
       }
 
       // 2. Write the files, 3. insert the rows under a lock. If anything fails after
@@ -110,11 +113,11 @@ export function createAttachmentsService(deps: AttachmentsServiceDeps) {
 
         const rows = await transaction(async (tx) => {
           if (!(await attachments.lockActiveTransaction(userId, transactionId, tx))) {
-            throw errors.notFound('ไม่พบรายการ');
+            throw errors.notFound('errors.transactionNotFound');
           }
           const count = await attachments.countForTransaction(transactionId, tx);
           if (count + files.length > MAX_ATTACHMENTS_PER_TRANSACTION) {
-            throw errors.conflict(TOO_MANY);
+            throw errors.conflict(TOO_MANY, TOO_MANY_PARAMS);
           }
           const created: AttachmentRow[] = [];
           for (const [index, { file, type }] of detected.entries()) {

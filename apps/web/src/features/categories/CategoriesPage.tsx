@@ -1,6 +1,7 @@
 import type { CategoryDto } from '@income-expenses/shared';
 import { Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCategories, useDeleteCategory } from '../../api/categories';
 import { errorMessage } from '../../api/errors';
 import { Button } from '../../components/Button';
@@ -8,6 +9,7 @@ import { CategoryIcon } from '../../components/CategoryIcon';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Card, EmptyState, ErrorState, LoadingRows } from '../../components/states';
 import { useToast } from '../../components/toast';
+import { categoryName } from '../../lib/category-name';
 import { cn } from '../../lib/cn';
 import { CategoryFormModal } from './CategoryFormModal';
 import { TagsPanel } from './TagsPanel';
@@ -25,17 +27,20 @@ function CategoryRow({
   onEdit: (category: CategoryDto) => void;
   onDelete: (category: CategoryDto) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <li className={cn('flex items-center gap-3 py-2.5', depth === 1 && 'pl-10')}>
       <CategoryIcon icon={category.icon} color={category.color} size={depth ? 'sm' : 'md'} />
-      <span className={cn('flex-1 truncate', depth === 0 && 'font-medium')}>{category.name}</span>
+      <span className={cn('flex-1 truncate', depth === 0 && 'font-medium')}>
+        {categoryName(category)}
+      </span>
       {category.isSystem ? (
         // System categories are read-only (API answers 403): show why, not a dead button.
         <span
           className="flex items-center gap-1 text-xs text-slate-500"
-          title="หมวดของระบบ แก้ไขหรือลบไม่ได้"
+          title={t('categories.systemTitle')}
         >
-          <Lock className="size-3.5" aria-hidden /> ระบบ
+          <Lock className="size-3.5" aria-hidden /> {t('categories.system')}
         </span>
       ) : (
         <div className="flex">
@@ -43,7 +48,7 @@ function CategoryRow({
             variant="ghost"
             size="sm"
             onClick={() => onEdit(category)}
-            aria-label={`แก้ไข ${category.name}`}
+            aria-label={t('common.editItem', { name: categoryName(category) })}
           >
             <Pencil className="size-4" aria-hidden />
           </Button>
@@ -51,7 +56,7 @@ function CategoryRow({
             variant="ghost"
             size="sm"
             onClick={() => onDelete(category)}
-            aria-label={`ลบ ${category.name}`}
+            aria-label={t('common.deleteItem', { name: categoryName(category) })}
           >
             <Trash2 className="size-4" aria-hidden />
           </Button>
@@ -62,6 +67,7 @@ function CategoryRow({
 }
 
 export function CategoriesPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('expense');
   // The tags tab shows TagsPanel; keep the expense list cached meanwhile.
   const categoryType = tab === 'tags' ? 'expense' : tab;
@@ -75,7 +81,7 @@ export function CategoriesPage() {
     if (!deleting) return;
     try {
       await deleteCategory.mutateAsync(deleting.id);
-      toast.show(`ลบหมวด "${deleting.name}" แล้ว`);
+      toast.show(t('categories.deleted', { name: deleting.name }));
     } catch (error) {
       // 409 when used by transactions/budgets or when it has sub-categories.
       toast.show(errorMessage(error), { tone: 'error' });
@@ -87,24 +93,24 @@ export function CategoriesPage() {
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">หมวดหมู่และแท็ก</h1>
+        <h1 className="text-2xl font-bold">{t('categories.title')}</h1>
         {tab !== 'tags' && (
           <Button onClick={() => setEditing('new')}>
-            <Plus className="size-4" aria-hidden /> เพิ่มหมวด
+            <Plus className="size-4" aria-hidden /> {t('categories.add')}
           </Button>
         )}
       </header>
 
       <div
         role="tablist"
-        aria-label="ประเภทหมวด"
+        aria-label={t('categories.tabs')}
         className="inline-grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
       >
         {(
           [
-            ['expense', 'รายจ่าย'],
-            ['income', 'รายรับ'],
-            ['tags', 'แท็ก'],
+            ['expense', 'common.expense'],
+            ['income', 'common.income'],
+            ['tags', 'categories.tags'],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -120,7 +126,7 @@ export function CategoriesPage() {
                 : 'text-slate-600 dark:text-slate-400',
             )}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
@@ -135,8 +141,8 @@ export function CategoriesPage() {
             <ErrorState error={categories.error} onRetry={() => void categories.refetch()} />
           ) : categories.data.length === 0 ? (
             <EmptyState
-              title="ยังไม่มีหมวด"
-              action={<Button onClick={() => setEditing('new')}>เพิ่มหมวดแรก</Button>}
+              title={t('categories.empty')}
+              action={<Button onClick={() => setEditing('new')}>{t('categories.addFirst')}</Button>}
             />
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -176,8 +182,8 @@ export function CategoriesPage() {
       />
       <ConfirmDialog
         open={deleting !== null}
-        title="ลบหมวด"
-        message={`ลบหมวด "${deleting?.name ?? ''}" ถาวร? ลบได้เฉพาะหมวดที่ยังไม่ถูกใช้ในรายการหรืองบประมาณ`}
+        title={t('categories.deleteTitle')}
+        message={t('categories.deleteMessage', { name: deleting?.name ?? '' })}
         loading={deleteCategory.isPending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}

@@ -74,6 +74,33 @@ describe('PATCH /users/me', () => {
   it('requires authentication', async () => {
     await request(app).patch('/api/v1/users/me').send({ displayName: 'x' }).expect(401);
   });
+
+  it('stores the UI language (th | en | lo) so every device uses it', async () => {
+    const user = await registerUser(app, { locale: 'lo' });
+    expect(user.user.locale).toBe('lo');
+
+    const res = await request(app)
+      .patch('/api/v1/users/me')
+      .set('Authorization', `Bearer ${user.accessToken}`)
+      .send({ locale: 'en' })
+      .expect(200);
+    expect(res.body.data.locale).toBe('en');
+
+    const bad = await request(app)
+      .patch('/api/v1/users/me')
+      .set('Authorization', `Bearer ${user.accessToken}`)
+      .send({ locale: 'fr' })
+      .expect(400);
+    expect(bad.body.error.details[0]).toMatchObject({
+      path: 'locale',
+      key: 'validation.localeInvalid',
+    });
+  });
+
+  it('defaults to Thai when signing up without a language', async () => {
+    const user = await registerUser(app);
+    expect(user.user.locale).toBe('th');
+  });
 });
 
 describe('PATCH /users/me/password', () => {

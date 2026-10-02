@@ -94,6 +94,17 @@ describe('GET /transactions/export.csv', () => {
     expect(rows[2]).toBe('2026-09-20,12:00,transfer,"Bank, main",USD,,,3500.00,100.00,THB,,');
   });
 
+  it('names system categories in the user language (users.locale)', async () => {
+    await alice.patch('/users/me', { locale: 'en' }).expect(200);
+    try {
+      const rows = lines((await alice.get('/transactions/export.csv')).text).slice(1);
+      expect(rows[0]).toContain(',Coffee,Food,');
+      expect(rows[1]).toContain(',Salary,,');
+    } finally {
+      await alice.patch('/users/me', { locale: 'th' }).expect(200);
+    }
+  });
+
   it('applies the same filters as the list', async () => {
     const onlyIncome = lines((await alice.get('/transactions/export.csv?type=income')).text);
     const october = lines(
