@@ -55,6 +55,7 @@ model User {
   budgets               Budget[]
   tags                  Tag[]
   recurringTransactions RecurringTransaction[]
+  passwordResetCodes    PasswordResetCode[]
 
   @@map("users")
 }
@@ -71,6 +72,23 @@ model RefreshToken {
 
   @@index([userId], map: "idx_refresh_tokens_user")
   @@map("refresh_tokens")
+}
+
+/// One-time codes for "forgot password". Only an HMAC of the code is stored (never the code).
+/// A new request replaces older codes; a code dies after use, 5 wrong tries or expires_at.
+model PasswordResetCode {
+  id        BigInt    @id @default(autoincrement()) @map("code_id")
+  userId    BigInt    @map("user_id")
+  codeHash  String    @map("code_hash") @db.Char(64)
+  attempts  Int       @default(0) @db.SmallInt
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_reset_codes_user")
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_reset_codes_user_created")
+  @@map("password_reset_codes")
 }
 
 model Wallet {

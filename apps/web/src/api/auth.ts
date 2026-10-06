@@ -1,8 +1,10 @@
 import type {
   AuthResponse,
   CurrencyDto,
+  ForgotPasswordInput,
   LoginInput,
   RegisterInput,
+  ResetPasswordInput,
   UserDto,
 } from '@income-expenses/shared';
 import { useQuery } from '@tanstack/react-query';
@@ -28,6 +30,23 @@ export async function register(input: RegisterInput): Promise<UserDto> {
   const session = await authCall(authHttp.post<{ data: AuthResponse }>('/auth/register', input));
   setAccessToken(session.accessToken);
   return session.user;
+}
+
+/** Always 202 for a valid email — the API never says whether the address has an account. */
+export async function requestPasswordReset(input: ForgotPasswordInput): Promise<void> {
+  try {
+    await authHttp.post('/auth/forgot-password', input);
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function resetPassword(input: ResetPasswordInput): Promise<void> {
+  try {
+    await authHttp.post('/auth/reset-password', input);
+  } catch (error) {
+    throw toApiError(error);
+  }
 }
 
 export async function logout(): Promise<void> {

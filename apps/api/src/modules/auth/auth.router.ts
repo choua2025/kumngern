@@ -3,6 +3,11 @@ import { config } from '../../config/index.js';
 import { requireAuth } from '../../middlewares/auth.js';
 import { createRateLimiter } from '../../middlewares/rate-limit.js';
 import { validate } from '../../middlewares/validate.js';
+import { passwordResetController } from '../password-reset/password-reset.controller.js';
+import {
+  forgotPasswordRequest,
+  resetPasswordRequest,
+} from '../password-reset/password-reset.schema.js';
 import { authController } from './auth.controller.js';
 import { loginRequest, registerRequest } from './auth.schema.js';
 
@@ -16,10 +21,35 @@ export function createAuthRouter(): Router {
     message: 'errors.loginRateLimited',
   });
 
+  // Per IP, on top of the per-account cooldown and daily cap in the service.
+  const forgotRateLimiter = createRateLimiter({
+    windowMs: 60_000,
+    limit: config.LOGIN_RATE_LIMIT_PER_MINUTE,
+    message: 'errors.rateLimited',
+  });
+  // Guessing codes: the 5-attempt lock is per code; this slows guessing across accounts.
+  const resetRateLimiter = createRateLimiter({
+    windowMs: 60_000,
+    limit: config.LOGIN_RATE_LIMIT_PER_MINUTE * 2,
+    message: 'errors.rateLimited',
+  });
+
   router.post('/register', validate(registerRequest), authController.register);
   // Rate limit runs BEFORE validation so malformed requests also count as attempts.
   router.post('/login', loginRateLimiter, validate(loginRequest), authController.login);
   router.post('/refresh', authController.refresh);
+  router.post(
+    '/forgot-password',
+    forgotRateLimiter,
+    validate(forgotPasswordRequest),
+    passwordResetController.forgot,
+  );
+  router.post(
+    '/reset-password',
+    resetRateLimiter,
+    validate(resetPasswordRequest),
+    passwordResetController.reset,
+  );
   // No requireAuth: logging out must work even when the access token has expired.
   router.post('/logout', authController.logout);
   router.get('/me', requireAuth, authController.me);

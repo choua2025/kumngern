@@ -54,3 +54,19 @@ export const changePasswordSchema = z
     path: ['newPassword'],
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+/** Length of the one-time code emailed for a password reset. */
+export const RESET_CODE_LENGTH = 6;
+
+export const forgotPasswordSchema = z.object({ email: emailSchema });
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  email: emailSchema,
+  code: z
+    .string({ error: msg('validation.resetCodeFormat') })
+    .trim()
+    .regex(new RegExp(`^\\d{${RESET_CODE_LENGTH}}$`), msg('validation.resetCodeFormat')),
+  newPassword: passwordSchema,
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

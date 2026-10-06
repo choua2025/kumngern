@@ -60,6 +60,14 @@ services:
       UPLOAD_DIR: /app/uploads
       CRON_ENABLED: ${CRON_ENABLED:-true}
       CRON_TZ: ${CRON_TZ:-Asia/Bangkok}
+      PASSWORD_RESET_SECRET: ${PASSWORD_RESET_SECRET:?}
+      # Email (Brevo). Unset = "forgot password" answers 503 instead of sending.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
     volumes:
       - uploads:/app/uploads
     networks: [backend, frontend]
