@@ -61,6 +61,7 @@ Base URL: `/api/v1` · Content-Type: `application/json` (ยกเว้น uplo
 | 404  | `NOT_FOUND`        | ไม่มี **หรือเป็นของผู้ใช้อื่น**                                                                 |
 | 409  | `CONFLICT`         | ซ้ำ (email, ชื่อ wallet/tag, budget), ลบสิ่งที่ถูกใช้อยู่, wallet archived, ไฟล์แนบเกิน 3       |
 | 429  | `RATE_LIMITED`     | เกิน rate limit (มี header `Retry-After`)                                                       |
+| 503  | `INTERNAL_ERROR`   | ระบบยังไม่พร้อม (`/ready`) หรือยังไม่ได้ตั้งค่าอีเมล (`/auth/forgot-password`)                  |
 | 500  | `INTERNAL_ERROR`   | ข้อผิดพลาดที่ไม่คาดคิด (ไม่ส่ง stack trace ให้ client)                                          |
 
 ### 1.4 Data types
@@ -76,10 +77,12 @@ Base URL: `/api/v1` · Content-Type: `application/json` (ยกเว้น uplo
 
 ### 1.5 Rate limits
 
-| ขอบเขต             | ค่า                   |
-| ------------------ | --------------------- |
-| `POST /auth/login` | 5 ครั้ง / นาที / IP   |
-| API ทั้งหมด        | 300 ครั้ง / นาที / IP |
+| ขอบเขต                       | ค่า                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `POST /auth/login`           | 5 ครั้ง / นาที / IP                                                     |
+| `POST /auth/forgot-password` | 5 ครั้ง / นาที / IP + 1 รหัส / 60 วินาที / บัญชี + 5 รหัส / วัน / บัญชี |
+| `POST /auth/reset-password`  | 10 ครั้ง / นาที / IP + ผิดได้ 5 ครั้ง / รหัส                            |
+| API ทั้งหมด                  | 300 ครั้ง / นาที / IP                                                   |
 
 ---
 
@@ -178,6 +181,36 @@ Errors: `401` (ไม่มี cookie / ไม่พบ / หมดอายุ 
 ```
 204
 ```
+
+### `POST /auth/forgot-password` — public, rate limited
+
+- ส่งรหัส 6 หลัก (OTP) ไปที่อีเมลของบัญชี ใช้ได้ **10 นาที** และ**ผิดได้ 5 ครั้ง** ขอรหัสใหม่แล้วรหัสเก่าใช้ไม่ได้
+- ตอบ **202 เสมอ** ไม่ว่าอีเมลจะมีบัญชีหรือไม่ หรือถูก throttle (กันการไล่หาว่าอีเมลไหนสมัครไว้) และส่งอีเมลเบื้องหลัง
+- อีเมลเป็นภาษาตาม `users.locale`
+- DB เก็บแค่ `HMAC-SHA256(PASSWORD_RESET_SECRET, userId.code)` ไม่เก็บรหัสจริง
+
+```json
+// request
+{ "email": "demo1@example.com" }
+
+// 202 (ไม่มี body)
+```
+
+Errors: `400`, `429`, `503` (server ยังไม่ได้ตั้งค่า SMTP)
+
+### `POST /auth/reset-password` — public, rate limited
+
+- ถูกต้อง → เปลี่ยนรหัสผ่าน + **revoke refresh token ทุกเครื่อง** ใน transaction เดียว แล้วผู้ใช้ต้อง login ใหม่
+- ล็อกแถวรหัสด้วย `SELECT … FOR UPDATE` เพื่อให้การเดาพร้อมกันหลาย request นับครั้งได้ถูกต้อง
+
+```json
+// request
+{ "email": "demo1@example.com", "code": "042917", "newPassword": "NewPassword123!" }
+
+// 204
+```
+
+Errors: `400` `validation.resetCodeInvalid` (ผิด / หมดอายุ / ใช้แล้ว / ไม่มีบัญชี — ข้อความเดียวกัน), `validation.resetCodeLocked` (ผิดครบ 5 ครั้ง ต้องขอรหัสใหม่), `429`
 
 ### `GET /auth/me`
 

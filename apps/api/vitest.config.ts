@@ -33,6 +33,7 @@ export default defineConfig({
       LOG_LEVEL: 'silent',
       DATABASE_URL: testDatabaseUrl,
       JWT_ACCESS_SECRET: 'test-secret-that-is-at-least-32-characters-long',
+      PASSWORD_RESET_SECRET: 'test-reset-secret-that-is-at-least-32-chars',
       // Cost 4 instead of 12: ~1 ms instead of ~250 ms per hash, same code path.
       BCRYPT_COST: '4',
       // Attachments go to a throw-away directory, never into the repo.

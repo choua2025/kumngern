@@ -82,6 +82,22 @@ export const en = {
     tagline: 'Know where your money goes — every wallet in one place',
     checking: 'Checking your session',
   },
+  forgot: {
+    link: 'Forgot password?',
+    title: 'Reset password',
+    intro: 'Enter the email of your account. We will send you a 6-digit code.',
+    sendCode: 'Send code',
+    sentTo:
+      'If {{email}} has an account, a 6-digit code is on its way. Check your inbox and spam folder — the code works for 10 minutes.',
+    code: 'Code from the email',
+    submit: 'Set new password',
+    resend: 'Send a new code',
+    resendIn: 'Send a new code in {{seconds}} s',
+    resent: 'A new code is on its way',
+    otherEmail: 'Use another email',
+    backToLogin: 'Back to log in',
+    done: 'Password changed. Log in with your new password.',
+  },
   // Messages that also come from the API / shared Zod schemas live in packages/shared.
   validation: {
     ...serverMessagesEn.validation,

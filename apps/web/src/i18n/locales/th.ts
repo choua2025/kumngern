@@ -78,6 +78,22 @@ export const th = {
     tagline: 'รู้ว่าเงินไปไหน ทุกกระเป๋าในที่เดียว',
     checking: 'กำลังตรวจสอบการเข้าสู่ระบบ',
   },
+  forgot: {
+    link: 'ลืมรหัสผ่าน?',
+    title: 'ตั้งรหัสผ่านใหม่',
+    intro: 'กรอกอีเมลของบัญชี เราจะส่งรหัสยืนยัน 6 หลักไปให้',
+    sendCode: 'ส่งรหัส',
+    sentTo:
+      'ถ้า {{email}} มีบัญชีอยู่ เราได้ส่งรหัส 6 หลักไปแล้ว กรุณาดูกล่องจดหมายและโฟลเดอร์สแปม รหัสใช้ได้ 10 นาที',
+    code: 'รหัสจากอีเมล',
+    submit: 'ตั้งรหัสผ่านใหม่',
+    resend: 'ส่งรหัสใหม่',
+    resendIn: 'ส่งรหัสใหม่ได้ใน {{seconds}} วินาที',
+    resent: 'ส่งรหัสใหม่แล้ว',
+    otherEmail: 'ใช้อีเมลอื่น',
+    backToLogin: 'กลับไปหน้าเข้าสู่ระบบ',
+    done: 'เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่',
+  },
   // Messages that also come from the API / shared Zod schemas live in packages/shared.
   validation: {
     ...serverMessagesTh.validation,

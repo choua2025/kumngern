@@ -72,7 +72,7 @@ docs/            design doc, ERD, API spec, CI/CD
 
 ```bash
 npm install
-cp .env.example .env        # ตั้ง JWT_ACCESS_SECRET (และ PORT/POSTGRES_PORT ถ้าพอร์ตชนกับโปรแกรมอื่น)
+cp .env.example .env        # ตั้ง JWT_ACCESS_SECRET, PASSWORD_RESET_SECRET (และ PORT/POSTGRES_PORT ถ้าพอร์ตชนกับโปรแกรมอื่น)
 npm run db:up && npm run db:deploy && npm run db:seed
 
 npm run dev:api             # terminal 1 — API ที่ $PORT (ค่าเริ่มต้น 3000)
@@ -84,8 +84,9 @@ login ด้วย `demo1@example.com` / `Password123!` (บัญชี THB) �
 ### รันทั้งหมดใน Docker
 
 ```bash
-cp .env.example .env        # ตั้ง JWT_ACCESS_SECRET; เปลี่ยน API_PORT/WEB_PORT/POSTGRES_PORT ถ้าชน
+cp .env.example .env        # ตั้ง JWT_ACCESS_SECRET, PASSWORD_RESET_SECRET; เปลี่ยน API_PORT/WEB_PORT/POSTGRES_PORT ถ้าชน
 docker compose up --build   # db + api (hot reload) + web → http://localhost:5173
+# อีเมลทั้งหมด (เช่นรหัสลืมรหัสผ่าน) ไปที่ Mailpit → http://localhost:8025
 docker compose exec api npm run db:seed    # ข้อมูลตัวอย่าง (ไม่บังคับ)
 ```
 

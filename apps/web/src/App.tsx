@@ -2,6 +2,7 @@ import { lazy, type ReactNode, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
 import { LoadingRows } from './components/states';
 import { LoginPage } from './features/auth/LoginPage';
+import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { RedirectIfAuthenticated, RequireAuth } from './features/auth/RequireAuth';
 import { AppLayout } from './layouts/AppLayout';
@@ -45,6 +46,14 @@ export function App() {
         element={
           <RedirectIfAuthenticated>
             <LoginPage />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <RedirectIfAuthenticated>
+            <ForgotPasswordPage />
           </RedirectIfAuthenticated>
         }
       />
