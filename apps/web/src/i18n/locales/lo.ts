@@ -83,6 +83,22 @@ export const lo = {
     tagline: 'ຮູ້ວ່າເງິນໄປໃສ ທຸກກະເປົາໃນບ່ອນດຽວ',
     checking: 'ກຳລັງກວດສອບການເຂົ້າສູ່ລະບົບ',
   },
+  forgot: {
+    link: 'ລືມລະຫັດຜ່ານ?',
+    title: 'ຕັ້ງລະຫັດຜ່ານໃໝ່',
+    intro: 'ປ້ອນອີເມວຂອງບັນຊີ ພວກເຮົາຈະສົ່ງລະຫັດຢືນຢັນ 6 ຕົວເລກໄປໃຫ້',
+    sendCode: 'ສົ່ງລະຫັດ',
+    sentTo:
+      'ຖ້າ {{email}} ມີບັນຊີຢູ່ ພວກເຮົາໄດ້ສົ່ງລະຫັດ 6 ຕົວເລກໄປແລ້ວ ກະລຸນາເບິ່ງກ່ອງຈົດໝາຍ ແລະ ໂຟນເດີສະແປມ ລະຫັດໃຊ້ໄດ້ 10 ນາທີ',
+    code: 'ລະຫັດຈາກອີເມວ',
+    submit: 'ຕັ້ງລະຫັດຜ່ານໃໝ່',
+    resend: 'ສົ່ງລະຫັດໃໝ່',
+    resendIn: 'ສົ່ງລະຫັດໃໝ່ໄດ້ໃນ {{seconds}} ວິນາທີ',
+    resent: 'ສົ່ງລະຫັດໃໝ່ແລ້ວ',
+    otherEmail: 'ໃຊ້ອີເມວອື່ນ',
+    backToLogin: 'ກັບໄປໜ້າເຂົ້າສູ່ລະບົບ',
+    done: 'ປ່ຽນລະຫັດຜ່ານແລ້ວ ກະລຸນາເຂົ້າສູ່ລະບົບດ້ວຍລະຫັດຜ່ານໃໝ່',
+  },
   // Messages that also come from the API / shared Zod schemas live in packages/shared.
   validation: {
     ...serverMessagesLo.validation,

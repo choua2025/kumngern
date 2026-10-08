@@ -4,6 +4,7 @@ import { parseEnv } from './env.js';
 const validEnv = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
   JWT_ACCESS_SECRET: 'x'.repeat(32),
+  PASSWORD_RESET_SECRET: 'y'.repeat(32),
 };
 
 describe('parseEnv', () => {
@@ -40,11 +41,22 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...validEnv, CRON_TZ: 'Mars/Olympus' })).toThrow(/CRON_TZ/);
   });
 
-  it('parses the cron settings and rejects an unknown timezone', () => {
-    expect(parseEnv(validEnv)).toMatchObject({ CRON_ENABLED: true, CRON_TZ: 'Asia/Bangkok' });
-    expect(parseEnv({ ...validEnv, CRON_ENABLED: 'false' }).CRON_ENABLED).toBe(false);
-    expect(() => parseEnv({ ...validEnv, CRON_ENABLED: 'yes' })).toThrow(/CRON_ENABLED/);
-    expect(() => parseEnv({ ...validEnv, CRON_TZ: 'Mars/Olympus' })).toThrow(/CRON_TZ/);
+  it('treats email as optional, but refuses a half-configured SMTP', () => {
+    expect(parseEnv(validEnv).SMTP_HOST).toBeUndefined();
+    // docker compose passes an unset ${SMTP_HOST:-} as an empty string
+    expect(
+      parseEnv({ ...validEnv, SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '' }).SMTP_HOST,
+    ).toBeUndefined();
+    expect(
+      parseEnv({ ...validEnv, SMTP_HOST: 'smtp-relay.brevo.com', MAIL_FROM: 'App <a@b.co>' }),
+    ).toMatchObject({ SMTP_PORT: 587, SMTP_SECURE: false });
+    expect(() => parseEnv({ ...validEnv, SMTP_HOST: 'smtp-relay.brevo.com' })).toThrow(/MAIL_FROM/);
+    expect(() =>
+      parseEnv({ ...validEnv, SMTP_HOST: 'h', MAIL_FROM: 'a@b.co', SMTP_USER: 'u' }),
+    ).toThrow(/SMTP_PASS/);
+    expect(() => parseEnv({ ...validEnv, PASSWORD_RESET_SECRET: 'short' })).toThrow(
+      /PASSWORD_RESET_SECRET/,
+    );
   });
 
   it('fails fast and names the missing variable', () => {

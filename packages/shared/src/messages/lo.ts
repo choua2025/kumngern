@@ -77,6 +77,9 @@ export const serverMessagesLo = {
     frequencyInvalid: 'ຄວາມຖີ່ບໍ່ຖືກຕ້ອງ',
     isActiveInvalid: 'isActive ຕ້ອງເປັນ true/false',
     localeInvalid: 'ບໍ່ຮອງຮັບພາສານີ້',
+    resetCodeFormat: 'ລະຫັດຢືນຢັນມີ 6 ຕົວເລກ',
+    resetCodeInvalid: 'ລະຫັດຢືນຢັນບໍ່ຖືກຕ້ອງ ຫຼື ໝົດອາຍຸແລ້ວ',
+    resetCodeLocked: 'ປ້ອນລະຫັດຜິດຫຼາຍຄັ້ງເກີນໄປ ກະລຸນາຂໍລະຫັດໃໝ່',
   },
   errors: {
     unauthorized: 'ກະລຸນາເຂົ້າສູ່ລະບົບ',
@@ -119,5 +122,6 @@ export const serverMessagesLo = {
     tooManyFilesInRequest: 'ສົ່ງໄດ້ຄັ້ງລະບໍ່ເກີນ 3 ໄຟລ໌',
     unexpectedFileField: 'ຕ້ອງສົ່ງໄຟລ໌ໃນ field ຊື່ "files"',
     invalidUpload: 'ຂໍ້ມູນໄຟລ໌ທີ່ສົ່ງມາບໍ່ຖືກຕ້ອງ',
+    emailUnavailable: 'ສົ່ງອີເມວບໍ່ໄດ້ໃນຂະນະນີ້ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ',
   },
 } satisfies ServerMessages;

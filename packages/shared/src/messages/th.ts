@@ -76,6 +76,9 @@ export const serverMessagesTh = {
     frequencyInvalid: 'ความถี่ไม่ถูกต้อง',
     isActiveInvalid: 'isActive ต้องเป็น true/false',
     localeInvalid: 'ไม่รองรับภาษานี้',
+    resetCodeFormat: 'รหัสยืนยันมี 6 หลัก',
+    resetCodeInvalid: 'รหัสยืนยันไม่ถูกต้องหรือหมดอายุแล้ว',
+    resetCodeLocked: 'กรอกรหัสผิดหลายครั้งเกินไป กรุณาขอรหัสใหม่',
   },
   errors: {
     unauthorized: 'กรุณาเข้าสู่ระบบ',
@@ -118,5 +121,6 @@ export const serverMessagesTh = {
     tooManyFilesInRequest: 'ส่งได้ครั้งละไม่เกิน 3 ไฟล์',
     unexpectedFileField: 'ต้องส่งไฟล์ใน field ชื่อ "files"',
     invalidUpload: 'ข้อมูลไฟล์ที่ส่งมาไม่ถูกต้อง',
+    emailUnavailable: 'ส่งอีเมลไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง',
   },
 } satisfies ServerMessages;

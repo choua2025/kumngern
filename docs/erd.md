@@ -1,6 +1,6 @@
 # ERD — Income & Expenses
 
-PostgreSQL 16 · 11 ตาราง + 1 VIEW · ดูเหตุผลการออกแบบใน [design-doc.md](./design-doc.md)
+PostgreSQL 16 · 12 ตาราง + 1 VIEW · ดูเหตุผลการออกแบบใน [design-doc.md](./design-doc.md)
 
 ## 1. Diagram
 
@@ -9,6 +9,7 @@ erDiagram
     currencies ||--o{ users : "default_currency"
     currencies ||--o{ wallets : "currency_code"
     users ||--o{ refresh_tokens : "has"
+    users ||--o{ password_reset_codes : "has"
     users ||--o{ wallets : "owns"
     users |o--o{ categories : "owns (NULL = system)"
     categories |o--o{ categories : "parent_id (1 level)"
@@ -50,6 +51,15 @@ erDiagram
         char64 token_hash UK "SHA-256"
         timestamptz expires_at
         timestamptz revoked_at "nullable"
+        timestamptz created_at
+    }
+    password_reset_codes {
+        bigint code_id PK
+        bigint user_id FK "CASCADE"
+        char64 code_hash "HMAC-SHA256"
+        smallint attempts "0..5"
+        timestamptz expires_at "+10 min"
+        timestamptz used_at "nullable"
         timestamptz created_at
     }
     wallets {
@@ -155,6 +165,7 @@ erDiagram
 | recurring_transactions | `chk_rec_frequency`              | `frequency IN ('daily','weekly','monthly','yearly')`                     | spec       |
 | attachments            | `chk_att_mime`                   | `mime_type IN ('image/jpeg','image/png','image/webp','application/pdf')` | spec       |
 | attachments            | `chk_att_size`                   | `size_bytes > 0 AND size_bytes <= 5242880`                               | spec + X2  |
+| password_reset_codes   | `chk_reset_codes_attempts`       | `attempts BETWEEN 0 AND 5`                                               | เพิ่ม      |
 
 ```sql
 -- chk_tx_shape
@@ -208,6 +219,7 @@ CREATE INDEX idx_tx_recurring         ON transactions (recurring_id);
 CREATE INDEX idx_categories_user      ON categories (user_id);
 CREATE INDEX idx_categories_parent    ON categories (parent_id);
 CREATE INDEX idx_refresh_tokens_user  ON refresh_tokens (user_id);
+CREATE INDEX idx_reset_codes_user_created ON password_reset_codes (user_id, created_at DESC);
 CREATE INDEX idx_budgets_category     ON budgets (category_id);
 CREATE INDEX idx_transaction_tags_tag ON transaction_tags (tag_id);
 CREATE INDEX idx_attachments_tx       ON attachments (transaction_id);

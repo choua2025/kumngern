@@ -85,6 +85,9 @@ export const serverMessagesEn = {
     frequencyInvalid: 'Invalid frequency',
     isActiveInvalid: 'isActive must be true or false',
     localeInvalid: 'Unsupported language',
+    resetCodeFormat: 'The code is 6 digits',
+    resetCodeInvalid: 'The code is wrong or has expired',
+    resetCodeLocked: 'Too many wrong attempts — please request a new code',
   },
   errors: {
     unauthorized: 'Please log in',
@@ -128,6 +131,7 @@ export const serverMessagesEn = {
     tooManyFilesInRequest: 'At most 3 files per request',
     unexpectedFileField: 'Files must be sent in the field "files"',
     invalidUpload: 'Invalid file upload',
+    emailUnavailable: 'Email cannot be sent right now — please try again later',
   },
 };
 
